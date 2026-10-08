@@ -10,8 +10,9 @@
  * es entstehen keine Mischfarben. Kein Weichzeichnen, kein Verlauf.
  *
  * Schnittstelle (für andere Module):
- *   TitleScreen.light.add({ id, x, y, radius, intensity, color, flicker, speed, rest, event })
+ *   TitleScreen.light.add({ id, x, y, radius, rx, ry, intensity, color, flicker, speed, rest, event })
  *       x, y, radius in Originalpixeln; intensity 0..1; color 'gruen' | 'warm' | 'kuehl'
+ *       rx, ry: Halbachsen für eine Ellipse (fehlen sie, gilt radius)
  *       flicker 0..1, speed in Wellen pro Sekunde: nur für Quellen ohne eigenen Wert
  *       rest: Wert bei "Animationen aus" (Standard 1)
  *       event: 'blubb' -> Wert folgt den Kessel-Blasen (siehe onBlubb)
@@ -55,6 +56,7 @@
 
   var sum = new Float32Array(GW * GH);
   var best = new Float32Array(GW * GH);
+  var pulseSum = new Float32Array(GW * GH);    // Blubb-Pulsanteil, zählt nur in Kesselzellen
   var owner = new Int16Array(GW * GH);
   var level = new Uint8Array(GW * GH);
   var since = new Float64Array(GW * GH);       // Zeitpunkt des letzten Stufenwechsels
@@ -71,6 +73,7 @@
     remove(cfg.id);
     var L = {
       id: String(cfg.id), x: +cfg.x, y: +cfg.y, radius: +cfg.radius,
+      rx: +cfg.rx || +cfg.radius, ry: +cfg.ry || +cfg.radius,
       intensity: cfg.intensity == null ? 1 : +cfg.intensity,
       color: COLORS.indexOf(cfg.color) >= 0 ? COLORS.indexOf(cfg.color) : 1,
       flicker: +cfg.flicker || 0, speed: +cfg.speed || 1,
@@ -139,29 +142,33 @@
 
   // ---------- Lichtkarte ----------
   function compute(now) {                      // now = null: ohne Hysterese (Ruhebild)
-    sum.fill(0); best.fill(0); owner.fill(-1);
+    sum.fill(0); best.fill(0); owner.fill(-1); pulseSum.fill(0);
     for (var k = 0; k < lights.length; k++) {
       var L = lights[k];
       var amp = L.intensity * L.value;
       if (amp <= 0) continue;
-      var r = L.radius, r2 = r * r;
-      var gx0 = Math.max(0, Math.floor((L.x - r) / CELL)), gx1 = Math.min(GW - 1, Math.floor((L.x + r) / CELL));
-      var gy0 = Math.max(0, Math.floor((L.y - r) / CELL)), gy1 = Math.min(GH - 1, Math.floor((L.y + r) / CELL));
+      // Farbe (owner) ohne Blubb-Puls: feste Farbgrenze; der Puls zählt nur in Zellen mit Kesselfarbe
+      var own = L.event === 'blubb' ? L.intensity * Math.min(1, L.rest * (0.7 + L.base * 0.6)) : amp;
+      var rx = L.rx, ry = L.ry, rx2 = rx * rx, ry2 = ry * ry;
+      var gx0 = Math.max(0, Math.floor((L.x - rx) / CELL)), gx1 = Math.min(GW - 1, Math.floor((L.x + rx) / CELL));
+      var gy0 = Math.max(0, Math.floor((L.y - ry) / CELL)), gy1 = Math.min(GH - 1, Math.floor((L.y + ry) / CELL));
       for (var gy = gy0; gy <= gy1; gy++) {
         var dy = gy * CELL + CELL / 2 - L.y;
         for (var gx = gx0; gx <= gx1; gx++) {
           var dx = gx * CELL + CELL / 2 - L.x;
-          var d2 = dx * dx + dy * dy;
-          if (d2 >= r2) continue;
-          var c = amp * (1 - d2 / r2);               // Radius fest, nur die Stärke ändert sich
+          // normierter Abstand; Kreis (rx = ry) genau wie bisher gerechnet -> bitgleiche Karte
+          var d2 = rx === ry ? (dx * dx + dy * dy) / rx2 : dx * dx / rx2 + dy * dy / ry2;
+          if (d2 >= 1) continue;
+          var c = amp * (1 - d2);                    // Größe fest, nur die Stärke ändert sich
           var j = gy * GW + gx;
-          sum[j] += c;
-          if (c > best[j]) { best[j] = c; owner[j] = k; }
+          var o = own * (1 - d2);
+          sum[j] += o; pulseSum[j] += c - o;
+          if (o > best[j]) { best[j] = o; owner[j] = k; }
         }
       }
     }
     for (var i = 0; i < sum.length; i++) {
-      var v = Math.min(1, sum[i]), lv = level[i];
+      var v = Math.min(1, sum[i] + (owner[i] >= 0 && lights[owner[i]].event === 'blubb' ? pulseSum[i] : 0)), lv = level[i];
       if (now === null) {
         lv = v >= STEPS[2] ? 3 : v >= STEPS[1] ? 2 : v >= STEPS[0] ? 1 : 0;
         since[i] = 0;

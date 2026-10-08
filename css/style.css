@@ -152,12 +152,14 @@ body {
 
 /* ---------- Animation: Katze ---------- */
 /* Ausschnitt im Original: x=1020..1260, y=500..740 (von 1536x1024) */
+/* Canvas in Originalgröße 1536x1024 (wie .kerzen), die Katze wird nur in ihre Zelle
+   bei x=1020, y=500 gezeichnet. So gibt es bei keiner Bildschirmgröße Rundungsversatz. */
 #cat {
   position: absolute;
-  left: 66.40625%;
-  top: 48.828125%;
-  width: 15.625%;
-  height: 23.4375%;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   z-index: 3; /* Ebenen: Trank 1, Dampf 2, Hexe/Katze 3 */
   image-rendering: pixelated;
   pointer-events: none;
@@ -236,6 +238,38 @@ body {
   height: 100%;
   z-index: 5; /* über Trank 1, Dampf 2, Hexe/Katze 3 */
   mix-blend-mode: soft-light;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ---------- Animation: Kerzen flackern (js/candles.js) ---------- */
+/* Ein Canvas in Originalgröße (1536×1024) deckungsgleich über dem Hintergrund,
+   nur die vier Kerzenzellen sind bemalt (K1 x170 y244 23×48 | K2 x384 y579 23×44 |
+   K3 x1411 y57 24×46 | K4 x1433 y654 37×83). Gleiche Größe wie das Hintergrundbild
+   -> bei jeder Bildschirmgröße pixelgenau gleich skaliert. */
+.kerzen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Ebenen: Trank/Kerzen 1, Dampf/Funken 2, Hexe/Katze 3 */
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ---------- Animation: Funken (js/sparks.js) ---------- */
+/* Ein Canvas über der ganzen Bühne, 768×512 (1 Canvas-Pixel = 2×2 Originalpixel) */
+/* WICHTIG: .sparks und .steam haben beide z-index 2, nur die DOM-Reihenfolge entscheidet.
+   Die Script-Zeile von js/sparks.js muss in index.html NACH js/steam.js stehen,
+   sonst liegen die Funken unter dem Dampf. */
+.sparks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* über dem Dampf (steht im DOM danach), unter Hexe/Katze 3 */
   image-rendering: crisp-edges;
   image-rendering: pixelated;
   pointer-events: none;

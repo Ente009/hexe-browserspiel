@@ -107,10 +107,12 @@
   // Eine einzige requestAnimationFrame-Schleife. Module melden sich mit
   //   var aus = TitleScreen.onTick(function (now, dt) { ... }, fps);
   // an und werden höchstens mit ihrer Bildrate aufgerufen (now/dt in ms).
+  // dt ist zentral auf MAX_DT begrenzt: nach Tabwechsel oder Hänger springt nichts.
   // Bei "Animationen aus" steht die Schleife als Ganzes; jedes Modul zeichnet
   // dann selbst seinen Ruheframe (statechange-Event wie bisher).
   var tickers = [];
   var rafId = null;
+  var MAX_DT = 100;                              // ms
 
   function loop(now) {
     rafId = requestAnimationFrame(loop);
@@ -120,7 +122,7 @@
       if (now - t.last < t.interval - 1) continue;
       var dt = now - t.last;
       t.last += t.interval * Math.max(1, Math.floor((dt + 1) / t.interval));    // ohne Drift
-      try { t.fn(now, dt); } catch (e) { console.error(e); }
+      try { t.fn(now, Math.min(dt, MAX_DT)); } catch (e) { console.error(e); }
     }
   }
 

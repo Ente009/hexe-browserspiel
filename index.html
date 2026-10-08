@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hexenküche – Titelbildschirm</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -59,9 +60,15 @@
 
   <script src="js/main.js"></script>
   <script src="js/light.js"></script>
+  <script src="js/light-sources.js"></script>
   <script src="js/steam.js"></script>
   <script src="js/cat.js"></script>
   <script src="js/potion.js"></script>
+  <!-- candles.js und sparks.js müssen nach steam.js stehen, sonst liegen die Funken unter dem Dampf -->
+  <script src="js/candles.js"></script>
+  <!-- fire.js muss nach candles.js stehen: zeichnet in dessen Canvas .kerzen, leert/zeichnet nur die Feuerzellen x586–871/y610–719 -->
+  <script src="js/fire.js"></script>
+  <script src="js/sparks.js"></script>
   <script src="js/hexe.js"></script>
   <script src="js/music.js"></script>
 </body>
