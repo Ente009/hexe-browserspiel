@@ -96,13 +96,17 @@
   // Links am Fensterrahmen: kein gerader Schnitt, sondern unregelmäßiges Zerfallen.
   // Ab etwa 12 Canvas-Pixel vor dem Rahmen frisst ein mitwanderndes Rauschen
   // zunehmend Löcher in den Dampf; links von Bild-x 616 bleibt nichts übrig.
-  var LEFT_ZONE = 16;
-  function leftErode(x, y) {
-    if (x < WINDOW_LEFT - 4) return 99;                // links von Bild-x 616: nichts
+  // Genauso an der Unterkante (Schaum): unterste 6 Canvaszeilen (Bild-y ≈ 360–372).
+  var LEFT_ZONE = 16, BOTTOM_ZONE = 6;
+  function edgeErode(x, y) {
+    if (x < WINDOW_LEFT - 4 || y >= H - 1) return 99;  // links von Bild-x 616 / unterste Zeile: nichts
     // Die Grenze wandert pro Zeile mit Rauschen um ±7 Pixel hin und her (steigt mit
     // dem Dampf), dazu feine Löcher -> fransige statt gerader Kante
     var shift = (noiseAt(3.7, (y + tick * 1.5) * 0.28) - 0.5) * 2.6 * 7;
     var f = (WINDOW_LEFT + 12 - x + shift) / LEFT_ZONE; // ohne Versatz: 0 bei Bild-x 648, 1 bei 616
+    // unten: Grenze wandert pro Spalte um ±2 Zeilen
+    var shiftB = (noiseAt((x + tick * 0.5) * 0.3, 7.3) - 0.5) * 2.6 * 2;
+    f = Math.max(f, (y - (H - 1 - BOTTOM_ZONE) + shiftB) / (BOTTOM_ZONE - 1));
     if (f <= 0) return 0;
     if (f >= 1) return 99;
     var n = noiseAt(x * 0.4 + 11, (y + tick * 1.5) * 0.4 + 5);
@@ -293,7 +297,7 @@
         var n = 0.6 * noiseAt(w.nx + (x - w.x) * 0.16, w.ny + (y - w.y) * 0.16 + w.age * 0.03) +
                 0.4 * noiseAt(w.ny + (x - w.x) * 0.45, w.nx + (y - w.y) * 0.45 + w.age * 0.06);
         n = (n - 0.5) * 2.4;                     // Kontrast: etwa -1..1
-        dens = (dens * (1 + n * fray * 0.8) + n * fray * 0.3 - erode - leftErode(x, y)) * edgeMask(x, y);
+        dens = (dens * (1 + n * fray * 0.8) + n * fray * 0.3 - erode - edgeErode(x, y)) * edgeMask(x, y);
         var level = -1;
         var lcap = x < WINDOW_LEFT ? 0 : cap;      // links vom Rahmen höchstens die schwächste Stufe
         for (var l = 0; l <= lcap; l++) if (dens >= THRESHOLDS[l]) level = l;
