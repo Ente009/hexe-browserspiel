@@ -103,6 +103,51 @@
   renderMusic();
   renderSettings();
 
+  // ---------- Gemeinsamer Takt für alle Animationen ----------
+  // Eine einzige requestAnimationFrame-Schleife. Module melden sich mit
+  //   var aus = TitleScreen.onTick(function (now, dt) { ... }, fps);
+  // an und werden höchstens mit ihrer Bildrate aufgerufen (now/dt in ms).
+  // Bei "Animationen aus" steht die Schleife als Ganzes; jedes Modul zeichnet
+  // dann selbst seinen Ruheframe (statechange-Event wie bisher).
+  var tickers = [];
+  var rafId = null;
+
+  function loop(now) {
+    rafId = requestAnimationFrame(loop);
+    for (var i = 0; i < tickers.length; i++) {
+      var t = tickers[i];
+      if (t.last === null || now - t.last > 4 * t.interval) t.last = now - t.interval; // Start oder Pause
+      if (now - t.last < t.interval - 1) continue;
+      var dt = now - t.last;
+      t.last += t.interval * Math.max(1, Math.floor((dt + 1) / t.interval));    // ohne Drift
+      try { t.fn(now, dt); } catch (e) { console.error(e); }
+    }
+  }
+
+  function syncLoop() {
+    var on = state.animationsOn && tickers.length > 0;
+    if (on && rafId === null) {
+      tickers.forEach(function (t) { t.last = null; });
+      rafId = requestAnimationFrame(loop);
+    } else if (!on && rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  function onTick(fn, fps) {
+    var t = { fn: fn, interval: 1000 / (fps || 60), last: null };
+    tickers.push(t);
+    syncLoop();
+    return function off() {
+      var i = tickers.indexOf(t);
+      if (i >= 0) tickers.splice(i, 1);
+      syncLoop();
+    };
+  }
+
+  document.addEventListener('statechange', syncLoop);
+
   // Für spätere Module und zum Debuggen erreichbar
-  window.TitleScreen = { state: state, setState: setState, setMusic: setMusic };
+  window.TitleScreen = { state: state, setState: setState, setMusic: setMusic, onTick: onTick };
 })();

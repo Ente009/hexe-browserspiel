@@ -76,15 +76,9 @@
     if (lid !== null && lid >= 0) cell(lid, dy);
   }
 
-  // Schleife läuft nur bei eingeschalteten Animationen (wie beim Dampf)
-  var lastTick = 0;
-  var rafId = null;
-
+  // Gemeinsamer Takt aus main.js: läuft nur bei eingeschalteten Animationen
   function tick(now) {
-    rafId = requestAnimationFrame(tick);
     if (!sheet.complete || !sheet.naturalWidth) return;
-    if (now - lastTick < 1000 / FPS) return;
-    lastTick = now;
 
     if (!blink && now >= nextBlink) startBlink(now);
     if (!head && now >= nextHead) startHead(now);
@@ -98,19 +92,12 @@
     draw(tail, dy, lid);
   }
 
-  function start() {
-    if (rafId === null) rafId = requestAnimationFrame(tick);
-  }
-
-  function stop() {
-    if (rafId !== null) cancelAnimationFrame(rafId);
-    rafId = null;
-    blink = head = null;
-    if (sheet.complete && sheet.naturalWidth) draw(TAIL_REST, 0, null);  // stehende Katze wie im Original
-  }
+  window.TitleScreen.onTick(tick, FPS);
 
   function sync() {
-    if (window.TitleScreen.state.animationsOn) start(); else stop();
+    if (window.TitleScreen.state.animationsOn) return;
+    blink = head = null;
+    if (sheet.complete && sheet.naturalWidth) draw(TAIL_REST, 0, null);  // stehende Katze wie im Original
   }
 
   sheet.onload = sync;
