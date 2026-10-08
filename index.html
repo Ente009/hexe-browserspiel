@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hexenküche – Titelbildschirm</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Bühne im festen 3:2-Format; alle Positionen darin in Prozent -->
+  <main id="stage" aria-label="Titelbildschirm">
+    <!-- Ebene 1: Hintergrund (später gegen freigestellte Version assets/titelbild-bg.png tauschen) -->
+    <div id="layer-bg" class="layer">
+      <img src="assets/titelbild-bg.png" alt="Eine kleine Hexe braut in ihrer Hexenküche einen Trank, daneben sitzt eine schwarze Katze." draggable="false">
+    </div>
+
+    <!-- Ebene 2: Sprites für Dampf, Katze, Hexe (folgen in den Animations-Aufgaben) -->
+    <div id="layer-sprites" class="layer" aria-hidden="true"></div>
+
+    <!-- Ebene 3: Bedienoberfläche – unsichtbare Klickflächen über den gemalten Buttons -->
+    <div id="layer-ui" class="layer">
+      <button type="button" id="btn-play" class="hotspot" aria-label="Spielen"></button>
+      <button type="button" id="btn-settings" class="hotspot" aria-label="Einstellungen" aria-haspopup="dialog"></button>
+      <button type="button" id="btn-music" class="hotspot" aria-label="Musik einschalten" aria-pressed="false">
+        <svg class="music-off-mark" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
+          <path d="M3 3h2v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v2h-2v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1z"/>
+        </svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- Platzhalter für die spätere Spielszene -->
+  <dialog id="dialog-play" class="panel" aria-labelledby="play-title">
+    <form method="dialog">
+      <button class="panel-close" value="close" aria-label="Schließen">✕</button>
+      <h2 id="play-title">Bald geht's los!</h2>
+      <p>Die Spielszene wird gerade noch gebraut.</p>
+      <button class="panel-btn" value="close">Zurück</button>
+    </form>
+  </dialog>
+
+  <!-- Einstellungen (Platzhalter, Werte landen bereits im gemeinsamen state) -->
+  <dialog id="dialog-settings" class="panel" aria-labelledby="settings-title">
+    <form method="dialog">
+      <button class="panel-close" value="close" aria-label="Schließen">✕</button>
+      <h2 id="settings-title">Einstellungen</h2>
+      <label class="row">
+        <span>Lautstärke</span>
+        <input type="range" id="set-volume" min="0" max="100" step="5">
+        <output id="set-volume-value" for="set-volume"></output>
+      </label>
+      <label class="row">
+        <span>Animationen</span>
+        <input type="checkbox" id="set-animations">
+      </label>
+      <button class="panel-btn" value="close">Fertig</button>
+    </form>
+  </dialog>
+
+  <script src="js/main.js"></script>
+  <script src="js/steam.js"></script>
+  <script src="js/cat.js"></script>
+  <script src="js/potion.js"></script>
+  <script src="js/hexe.js"></script>
+  <script src="js/music.js"></script>
+</body>
+</html>
