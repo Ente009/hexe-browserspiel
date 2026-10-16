@@ -4,6 +4,26 @@
 (function () {
   'use strict';
   var PFAD = 'assets/spiel/karten/';
+  // Gemeinsame Fußbox der Hexe (F-011): einzige Definition, genutzt von Lader (Einstiege) und hexe-figur.js (Bewegung)
+  var FUSS = { w: 10, h: 6 };
+  function fussRechteck(x, y) { return { x: x - FUSS.w / 2, y: y - FUSS.h, w: FUSS.w, h: FUSS.h }; }
+  // Überlappungsfläche eines Rechtecks mit Blockiertem: Wand-Tiles, Fläche außerhalb der Karte, Fuß-Rechtecke
+  function ueberlappung(r, blockiert, breite, hoehe, tile, fuesse) {
+    var a = 0, x0 = Math.floor(r.x / tile), x1 = Math.floor((r.x + r.w - 1e-9) / tile), y0 = Math.floor(r.y / tile), y1 = Math.floor((r.y + r.h - 1e-9) / tile);
+    for (var ty = y0; ty <= y1; ty++) for (var tx = x0; tx <= x1; tx++) {
+      if (tx < 0 || ty < 0 || tx >= breite || ty >= hoehe || blockiert(tx, ty)) {
+        var w = Math.min(r.x + r.w, (tx + 1) * tile) - Math.max(r.x, tx * tile), h = Math.min(r.y + r.h, (ty + 1) * tile) - Math.max(r.y, ty * tile);
+        if (w > 0 && h > 0) a += w * h;
+      }
+    }
+    for (var i = 0; i < fuesse.length; i++) {
+      var f = fuesse[i], fw = Math.min(r.x + r.w, f.x + f.w) - Math.max(r.x, f.x), fh = Math.min(r.y + r.h, f.y + f.h) - Math.max(r.y, f.y);
+      if (fw > 0 && fh > 0) a += fw * fh;
+    }
+    return a;
+  }
+  // Überlappung der Fußbox am Fußpunkt x/y – gemeinsame Regel für Lader (Einstiege) und Bewegung (hexe-figur.js)
+  function fussUeberlappung(x, y, blockiert, breite, hoehe, tile, fuesse) { return ueberlappung(fussRechteck(x, y), blockiert, breite, hoehe, tile, fuesse); }
 
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
   var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts'];
@@ -28,7 +48,6 @@
       if (typeof z !== 'string' || z.length !== k.breite || /[^01]/.test(z)) fehler('kollision Zeile ' + y + ' braucht ' + k.breite + ' Zeichen 0/1');
     });
     var B = k.breite * TILE, H = k.hoehe * TILE;
-    function frei(x, y) { var tx = Math.floor(x / TILE), ty = Math.floor(y / TILE); return k.kollision[ty].charAt(tx) === '0'; }
 
     liste(k.objekte, 'objekte').forEach(function (o, i) {
       var wo = 'objekte[' + i + ']';
@@ -52,6 +71,7 @@
       rechteck(a.zone, wo + '.zone');
       text(a.ziel, wo + '.ziel'); text(a.einstieg, wo + '.einstieg');
     });
+    var objFuesse = k.objekte.filter(function (o) { return o.fuss; }).map(function (o) { return { x: o.x + o.fuss.x, y: o.y + o.fuss.y, w: o.fuss.w, h: o.fuss.h }; });
     if (!istObj(k.einstiege)) fehler('einstiege fehlt oder ist kein Objekt');
     if (!('start' in k.einstiege)) fehler('einstiege.start fehlt');
     Object.keys(k.einstiege).forEach(function (n) {
@@ -60,7 +80,11 @@
       zahl(e.x, wo + '.x'); zahl(e.y, wo + '.y');
       if ('richtung' in e && RICHTUNGEN.indexOf(e.richtung) < 0) fehler(wo + '.richtung muss hoch/runter/links/rechts sein');
       if (e.x < 0 || e.y < 0 || e.x >= B || e.y >= H) fehler(wo + ' (' + e.x + ',' + e.y + ') liegt außerhalb der Karte (0–' + (B - 1) + ', 0–' + (H - 1) + ')');
-      if (!frei(e.x, e.y)) fehler(wo + ' (' + e.x + ',' + e.y + ') liegt in einer Wand');
+      // F-011: ganze Fußbox (gleiche Geometrie wie hexe-figur.js) muss frei sein – Wände, Kartenrand, Objekt-Füße
+      // F-012: einzige Regel, dieselbe wie bei der Bewegung: fussUeberlappung() > 0 = blockiert (kein extra Punkttest)
+      var fr = fussRechteck(e.x, e.y);
+      var tiefe = fussUeberlappung(e.x, e.y, function (tx, ty) { return k.kollision[ty].charAt(tx) === '1'; }, k.breite, k.hoehe, TILE, objFuesse);
+      if (tiefe > 0) fehler(wo + ' (' + e.x + ',' + e.y + '): Fußbox ' + FUSS.w + '×' + FUSS.h + ' (x ' + fr.x + '–' + (fr.x + fr.w) + ', y ' + fr.y + '–' + (fr.y + fr.h) + ') überlappt Wand, Kartenrand oder Objekt-Fuß');
     });
     // Ausgang auf die eigene Karte muss einen vorhandenen Einstieg nennen (fremde Karten: HEX-017)
     k.ausgaenge.forEach(function (a, i) {
@@ -99,6 +123,17 @@
     return false;
   };
 
+  // Überlappungsfläche (px²) eines Rechtecks mit Wänden, Außenbereich und Objekt-Füßen
+  // Fußbox am Fußpunkt: dieselbe Funktion wie im Lader
+  Karte.prototype.fussUeberlappung = function (x, y) {
+    var self = this;
+    return fussUeberlappung(x, y, function (tx, ty) { return self.raster[ty * self.breite + tx] === 1; }, this.breite, this.hoehe, this.tile, this.fuesse);
+  };
+  Karte.prototype.ueberlappung = function (r) {
+    var self = this;
+    return ueberlappung(r, function (tx, ty) { return self.raster[ty * self.breite + tx] === 1; }, this.breite, this.hoehe, this.tile, this.fuesse);
+  };
+
   // Lädt <id>.json; Promise<Karte>. Jeder Fehler (Netz, Syntax, Format) mit Kartenname.
   function lade(id) {
     var name = 'Karte "' + id + '": ';
@@ -116,5 +151,5 @@
   }
 
   window.Spiel = window.Spiel || {};
-  window.Spiel.karte = { lade: lade, pruefe: pruefe, Karte: Karte, debug: false };
+  window.Spiel.karte = { lade: lade, pruefe: pruefe, Karte: Karte, FUSS: FUSS, fussRechteck: fussRechteck, debug: false };
 })();

@@ -1,12 +1,11 @@
 /* HEX-011 Kern: rAF-Schleife mit fester Logik-Schrittweite (60 Hz) und dt-Begrenzung, Zustand, Pause, Zeichnen.
-   Platzhalter-Rechteck bewegt sich, um die Kamera zu zeigen (echte Hexe + Kollision beim Laufen: HEX-013). */
+   Platzhalter-Rechteck bewegt sich, um die Kamera zu zeigen (HEX-013: Bewegung + Kollision in hexe-figur.js; Sprites: HEX-014). */
 (function () {
   'use strict';
   var S = window.Spiel;
   var BREITE = 480, HOEHE = 320;
   var SCHRITT = 1000 / 60;      // ms je Logikschritt
   var DT_MAX = 100;             // ms, wie TitleScreen.onTick in main.js
-  var TEMPO = 60;               // px/s (Plan §2, Vorschlag)
 
   var canvas = document.getElementById('spiel');
   var ctx = canvas.getContext('2d');
@@ -17,7 +16,7 @@
   var karte = null, KB = 0, KH = 0;   // HEX-012: wird per Spiel.karte.lade('test') gesetzt
   var zustand = {
     pausiert: false,
-    figur: { x: 0, y: 0, w: 12, h: 16 },
+    figur: S.hexeFigur.neu(0, 0),
     schritte: 0,
     faktor: 1
   };
@@ -46,12 +45,14 @@
   // ---------- Logik ----------
   function update(dt) {
     if (!karte) return;
-    var r = S.eingabe.richtung(), f = zustand.figur, s = TEMPO * dt / 1000;
-    f.x = Math.max(f.w / 2, Math.min(KB - f.w / 2, f.x + r.x * s));
-    f.y = Math.max(f.h / 2, Math.min(KH - f.h / 2, f.y + r.y * s));
-    S.kamera.folge(f, KB, KH);
+    var f = zustand.figur;
+    S.hexeFigur.bewege(f, karte, S.eingabe.richtung(), dt);   // HEX-013: achsweise Kollision
+    folgeKamera();
     zustand.schritte++;
   }
+
+  // Kamera auf die Körpermitte der Figur (x/y ist der Fußpunkt)
+  function folgeKamera() { var f = zustand.figur; S.kamera.folge({ x: f.x, y: f.y - f.h / 2 }, KB, KH); }
 
   // ---------- Zeichnen ----------
   function zeichne() {
@@ -75,9 +76,7 @@
     // Objekte (Platzhalter): Fuß als Kiste
     karte.fuesse.forEach(function (f) { ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(f.x) - k.x, Math.round(f.y) - k.y, f.w, f.h); });
     // Platzhalter-Figur (ganzzahlig gezeichnet)
-    var f = zustand.figur;
-    ctx.fillStyle = '#c8a0e0';
-    ctx.fillRect(Math.round(f.x - f.w / 2) - k.x, Math.round(f.y - f.h / 2) - k.y, f.w, f.h);
+    S.hexeFigur.zeichne(ctx, zustand.figur, k);   // Platzhalter, Sprites: HEX-014
     if (S.karte.debug) zeichneDebug(k, t);
   }
 
@@ -119,8 +118,9 @@
   // HEX-012: Testkarte laden
   S.karte.lade('test').then(function (k) {
     karte = k; KB = k.pxBreite; KH = k.pxHoehe;
-    zustand.figur.x = k.einstiege.start.x; zustand.figur.y = k.einstiege.start.y;
-    S.kamera.folge(zustand.figur, KB, KH);
+    var e = k.einstiege.start;
+    zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
+    folgeKamera();
     S.aktuelleKarte = k;
   }, function (e) {
     var el = document.getElementById('spiel-fehler');
