@@ -26,7 +26,7 @@
   function fussUeberlappung(x, y, blockiert, breite, hoehe, tile, fuesse) { return ueberlappung(fussRechteck(x, y), blockiert, breite, hoehe, tile, fuesse); }
 
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
-  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts'];
+  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber'];
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
     function istObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -55,6 +55,13 @@
       text(o.typ, wo + '.typ'); zahl(o.x, wo + '.x'); zahl(o.y, wo + '.y');
       if ('sprite' in o) textOderNull(o.sprite, wo + '.sprite');
       if ('fuss' in o) rechteck(o.fuss, wo + '.fuss');
+      // HEX-015: Zeichen-Ebene und Bildrechteck (nur Info, gezeichnet wird über sprite + anker)
+      if ('ebene' in o && EBENEN.indexOf(o.ebene) < 0) fehler(wo + '.ebene muss "objekt" oder "ueber" sein (ist ' + JSON.stringify(o.ebene) + ')');
+      if ('bild' in o) {
+        if (!Array.isArray(o.bild) || o.bild.length !== 4) fehler(wo + '.bild muss eine Liste [x,y,w,h] sein');
+        o.bild.forEach(function (v, j) { zahl(v, wo + '.bild[' + j + ']'); });
+        if (o.bild[2] < 0 || o.bild[3] < 0) fehler(wo + '.bild w/h dürfen nicht negativ sein');
+      }
     });
     var iids = {};
     liste(k.interaktionen, 'interaktionen').forEach(function (z, i) {
@@ -64,6 +71,8 @@
       iids[z.id] = i;
       if ('text' in z) text(z.text, wo + '.text');
       if ('aktion' in z) text(z.aktion, wo + '.aktion');
+      if ('satz' in z) text(z.satz, wo + '.satz');
+      if ('platzhalter' in z && typeof z.platzhalter !== 'boolean') fehler(wo + '.platzhalter muss true oder false sein (ist ' + JSON.stringify(z.platzhalter) + ')');
     });
     liste(k.ausgaenge, 'ausgaenge').forEach(function (a, i) {
       var wo = 'ausgaenge[' + i + ']';

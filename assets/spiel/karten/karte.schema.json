@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "title": "Spielkarte (HEX-012)",
+ "title": "Spielkarte (HEX-012, erweitert HEX-015)",
  "type": "object",
  "required": [
   "id",
@@ -34,7 +34,7 @@
    "description": "Tile-Größe in px"
   },
   "boden": {
-   "description": "Bodenbild (Pfad) oder null = Platzhalter-Raster; Tile-Layer folgt mit HEX-015",
+   "description": "Bodenbild (Pfad relativ zu spiel.html, z. B. assets/spiel/werkstatt-boden.png) oder null = Platzhalter-Raster",
    "type": [
     "string",
     "null"
@@ -72,7 +72,8 @@
       "type": [
        "string",
        "null"
-      ]
+      ],
+      "description": "HEX-015: \"<sheet>#<name>\", Sheet assets/spiel/<sheet>.png + .json"
      },
      "fuss": {
       "type": "object",
@@ -99,6 +100,23 @@
         "minimum": 0
        }
       }
+     },
+     "ebene": {
+      "enum": [
+       "objekt",
+       "ueber"
+      ],
+      "default": "objekt",
+      "description": "HEX-015: objekt = y-sortiert mit der Hexe (Fußpunkt y), ueber = über der Hexe"
+     },
+     "bild": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+       "type": "number"
+      },
+      "description": "HEX-015: Bildrechteck [x,y,w,h] in Weltpixeln (Info/Prüfung; gezeichnet wird über sprite + anker)"
      }
     }
    }
@@ -137,6 +155,14 @@
      },
      "aktion": {
       "type": "string"
+     },
+     "satz": {
+      "type": "string",
+      "description": "HEX-015/016: Satz in der Textblase (aktion sprechen)"
+     },
+     "platzhalter": {
+      "type": "boolean",
+      "description": "Nur Kennzeichen für Boss/Ente: Text ist Platzhalter; vom Code nicht ausgewertet"
      }
     }
    },

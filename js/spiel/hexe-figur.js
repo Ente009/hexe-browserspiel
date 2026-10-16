@@ -3,7 +3,9 @@
    - Eingabe-Richtung ist schon normalisiert (diagonal nicht schneller), konstant 60 px/s, sofortiger Start/Stopp.
    - Erst x, dann y getrennt: an Wänden gleiten statt hängen bleiben.
    Schnittstelle für Sprites (HEX-014): figur.richtung ('hoch'|'runter'|'links'|'rechts'), figur.laeuft (bool),
-   figur.laufzeit (ms seit Laufbeginn, für Animationsbilder). Zeichnen über Spiel.hexeFigur.zeichne(ctx, figur, kamera);
+   figur.laufzeit (ms seit Laufbeginn, für Animationsbilder), figur.spielzeit (s, Summe der Logikschritte, steht in der Pause).
+   HEX-014b (Entscheidung Boss): laeuft = in diesem Schritt wirklich bewegt (> 0 px), nicht „Taste gehalten“;
+   gegen die Wand gedrückt = Idle, Blickrichtung bleibt die gedrückte Richtung. Zeichnen über Spiel.hexeFigur.zeichne(ctx, figur, kamera);
    HEX-014 ersetzt nur diese Funktion, Bewegung/Kollision bleiben hier. */
 (function () {
   'use strict';
@@ -13,7 +15,7 @@
   var TEIL = 8;                   // Kontakt auf 1/8 px genau annähern
 
   function neu(x, y, richtung) {
-    return { x: x, y: y, w: BREITE, h: HOEHE, richtung: richtung || 'runter', laeuft: false, laufzeit: 0 };
+    return { x: x, y: y, w: BREITE, h: HOEHE, richtung: richtung || 'runter', laeuft: false, laufzeit: 0, spielzeit: 0 };
   }
   function fussRechteck(f, x, y) { return window.Spiel.karte.fussRechteck(x, y); }
 
@@ -35,20 +37,17 @@
 
   // dt in ms; r = {x,y} normalisierte Richtung
   function bewege(f, karte, r, dt) {
-    var s = TEMPO * dt / 1000;
+    var s = TEMPO * dt / 1000, x0 = f.x, y0 = f.y;
+    f.spielzeit = (f.spielzeit || 0) + dt / 1000;   // nur in Logikschritten (core.js ruft bewege in der Pause nicht auf)
     var schritte = Math.max(1, Math.ceil(s));      // nie mehr als 1 px je Teilschritt (kein Tunneln)
     for (var i = 0; i < schritte; i++) {
       achse(f, karte, r.x * s / schritte, 0);
       achse(f, karte, 0, r.y * s / schritte);
     }
-    var laeuft = !!(r.x || r.y);
-    if (laeuft) {
-      // Blickrichtung: bei diagonal zählt die waagrechte Achse
-      f.richtung = r.x > 0 ? 'rechts' : r.x < 0 ? 'links' : r.y < 0 ? 'hoch' : 'runter';
-      f.laufzeit = f.laeuft ? f.laufzeit + dt : 0;
-    } else {
-      f.laufzeit = 0;
-    }
+    // Blickrichtung aus der Eingabe (bei diagonal zählt die waagrechte Achse), auch wenn die Wand blockiert
+    if (r.x || r.y) f.richtung = r.x > 0 ? 'rechts' : r.x < 0 ? 'links' : r.y < 0 ? 'hoch' : 'runter';
+    var laeuft = f.x !== x0 || f.y !== y0;          // HEX-014b: nur wenn wirklich bewegt
+    f.laufzeit = laeuft ? (f.laeuft ? f.laufzeit + dt : 0) : 0;
     f.laeuft = laeuft;
   }
 

@@ -1,0 +1,542 @@
+{
+ "id": "werkstatt",
+ "breite": 30,
+ "hoehe": 20,
+ "tile": 16,
+ "boden": "assets/spiel/werkstatt-boden.png",
+ "kollision": [
+  "111111111111111111111111111111",
+  "111111111111111111111111111111",
+  "100000000000111111000000000001",
+  "100000000000111111000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000011",
+  "100000000000000000000000000011",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "000000000000000000000000000001",
+  "000000000000000000000000000001",
+  "100000000000000000000000000011",
+  "100000000000000000000000000011",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000001100000000000001",
+  "111111111111111111111111111111"
+ ],
+ "objekte": [
+  {
+   "typ": "kuerbishaus",
+   "x": 240,
+   "y": 160,
+   "sprite": "werkstatt-objekte#kuerbishaus",
+   "bild": [
+    192,
+    64,
+    96,
+    96
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -48,
+    "y": -96,
+    "w": 96,
+    "h": 96
+   }
+  },
+  {
+   "typ": "pilzdach",
+   "x": 240,
+   "y": 80,
+   "sprite": "werkstatt-objekte#pilzdach",
+   "bild": [
+    176,
+    16,
+    128,
+    64
+   ],
+   "ebene": "ueber"
+  },
+  {
+   "typ": "alchemietisch",
+   "x": 360,
+   "y": 176,
+   "sprite": "werkstatt-objekte#alchemietisch",
+   "bild": [
+    336,
+    144,
+    48,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -24,
+    "y": -12,
+    "w": 48,
+    "h": 12
+   }
+  },
+  {
+   "typ": "kessel",
+   "x": 400,
+   "y": 192,
+   "sprite": "werkstatt-objekte#kessel",
+   "bild": [
+    384,
+    160,
+    32,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -12,
+    "y": -12,
+    "w": 24,
+    "h": 12
+   }
+  },
+  {
+   "typ": "regal",
+   "x": 88,
+   "y": 96,
+   "sprite": "werkstatt-objekte#regal_m",
+   "bild": [
+    64,
+    48,
+    48,
+    48
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -24,
+    "y": -12,
+    "w": 48,
+    "h": 12
+   }
+  },
+  {
+   "typ": "regal",
+   "x": 128,
+   "y": 96,
+   "sprite": "werkstatt-objekte#regal_s",
+   "bild": [
+    112,
+    48,
+    32,
+    48
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -16,
+    "y": -12,
+    "w": 32,
+    "h": 12
+   }
+  },
+  {
+   "typ": "toepfe",
+   "x": 80,
+   "y": 128,
+   "sprite": "werkstatt-objekte#toepfe",
+   "bild": [
+    64,
+    112,
+    32,
+    16
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -16,
+    "y": -8,
+    "w": 32,
+    "h": 8
+   }
+  },
+  {
+   "typ": "laterne",
+   "x": 152,
+   "y": 176,
+   "sprite": "werkstatt-objekte#laterne",
+   "bild": [
+    144,
+    144,
+    16,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -8,
+    "y": -4,
+    "w": 16,
+    "h": 4
+   }
+  },
+  {
+   "typ": "laterne",
+   "x": 328,
+   "y": 208,
+   "sprite": "werkstatt-objekte#laterne",
+   "bild": [
+    320,
+    176,
+    16,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -8,
+    "y": -4,
+    "w": 16,
+    "h": 4
+   }
+  },
+  {
+   "typ": "laterne",
+   "x": 264,
+   "y": 272,
+   "sprite": "werkstatt-objekte#laterne",
+   "bild": [
+    256,
+    240,
+    16,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -8,
+    "y": -4,
+    "w": 16,
+    "h": 4
+   }
+  },
+  {
+   "typ": "baum",
+   "x": 40,
+   "y": 96,
+   "sprite": "werkstatt-objekte#baum_s",
+   "bild": [
+    16,
+    64,
+    48,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baum",
+   "x": 432,
+   "y": 80,
+   "sprite": "werkstatt-objekte#baum_m",
+   "bild": [
+    400,
+    48,
+    64,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baum",
+   "x": 40,
+   "y": 304,
+   "sprite": "werkstatt-objekte#baum_s",
+   "bild": [
+    16,
+    272,
+    48,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baum",
+   "x": 416,
+   "y": 304,
+   "sprite": "werkstatt-objekte#baum_m",
+   "bild": [
+    384,
+    272,
+    64,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 368,
+   "y": 64,
+   "sprite": "werkstatt-objekte#busch",
+   "bild": [
+    352,
+    32,
+    32,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 112,
+   "y": 272,
+   "sprite": "werkstatt-objekte#busch",
+   "bild": [
+    96,
+    240,
+    32,
+    32
+   ],
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "laubhaufen",
+   "x": 64,
+   "y": 160,
+   "sprite": "werkstatt-objekte#laubhaufen",
+   "bild": [
+    48,
+    144,
+    32,
+    16
+   ],
+   "ebene": "objekt"
+  },
+  {
+   "typ": "laubhaufen",
+   "x": 352,
+   "y": 272,
+   "sprite": "werkstatt-objekte#laubhaufen",
+   "bild": [
+    336,
+    256,
+    32,
+    16
+   ],
+   "ebene": "objekt"
+  },
+  {
+   "typ": "laubhaufen",
+   "x": 160,
+   "y": 240,
+   "sprite": "werkstatt-objekte#laubhaufen",
+   "bild": [
+    144,
+    224,
+    32,
+    16
+   ],
+   "ebene": "objekt"
+  },
+  {
+   "typ": "pilze_kraeuter",
+   "x": 192,
+   "y": 256,
+   "sprite": "werkstatt-objekte#pilze_kraeuter",
+   "bild": [
+    176,
+    240,
+    32,
+    16
+   ],
+   "ebene": "objekt"
+  },
+  {
+   "typ": "baumkrone",
+   "x": 40,
+   "y": 64,
+   "sprite": "werkstatt-objekte#krone_s",
+   "bild": [
+    16,
+    32,
+    48,
+    32
+   ],
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baumkrone",
+   "x": 432,
+   "y": 48,
+   "sprite": "werkstatt-objekte#krone_m",
+   "bild": [
+    400,
+    16,
+    64,
+    32
+   ],
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baumkrone",
+   "x": 40,
+   "y": 272,
+   "sprite": "werkstatt-objekte#krone_l",
+   "bild": [
+    16,
+    224,
+    48,
+    48
+   ],
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baumkrone",
+   "x": 416,
+   "y": 272,
+   "sprite": "werkstatt-objekte#krone_m",
+   "bild": [
+    384,
+    240,
+    64,
+    32
+   ],
+   "ebene": "ueber"
+  },
+  {
+   "typ": "sperre_fluss",
+   "x": 456,
+   "y": 240,
+   "sprite": "werkstatt-objekte#sperre_fluss",
+   "bild": [
+    448,
+    208,
+    16,
+    32
+   ],
+   "ebene": "objekt",
+   "gesperrt": "flussufer"
+  },
+  {
+   "typ": "sperre_hoehle",
+   "x": 240,
+   "y": 304,
+   "sprite": "werkstatt-objekte#sperre_hoehle",
+   "bild": [
+    224,
+    288,
+    32,
+    16
+   ],
+   "ebene": "objekt",
+   "gesperrt": "hoehle"
+  },
+  {
+   "typ": "sperre_ruinen",
+   "x": 456,
+   "y": 112,
+   "sprite": "werkstatt-objekte#sperre_ruinen",
+   "bild": [
+    448,
+    80,
+    16,
+    32
+   ],
+   "ebene": "objekt",
+   "gesperrt": "ruinen"
+  }
+ ],
+ "interaktionen": [
+  {
+   "id": "kuerbis",
+   "x": 208,
+   "y": 160,
+   "w": 64,
+   "h": 16,
+   "text": "Mit dem Kürbis sprechen",
+   "aktion": "sprechen",
+   "satz": "[Platzhalter] Willkommen in der Hexenwerkstatt!",
+   "platzhalter": true
+  },
+  {
+   "id": "sperre_fluss",
+   "x": 416,
+   "y": 208,
+   "w": 32,
+   "h": 32,
+   "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
+   "aktion": "gesperrt",
+   "platzhalter": true
+  },
+  {
+   "id": "sperre_hoehle",
+   "x": 224,
+   "y": 256,
+   "w": 32,
+   "h": 32,
+   "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
+   "aktion": "gesperrt",
+   "platzhalter": true
+  },
+  {
+   "id": "sperre_ruinen",
+   "x": 416,
+   "y": 80,
+   "w": 32,
+   "h": 32,
+   "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
+   "aktion": "gesperrt",
+   "platzhalter": true
+  }
+ ],
+ "ausgaenge": [
+  {
+   "zone": {
+    "x": 0,
+    "y": 176,
+    "w": 8,
+    "h": 32
+   },
+   "ziel": "waldpfad",
+   "einstieg": "von_werkstatt"
+  }
+ ],
+ "einstiege": {
+  "start": {
+   "x": 240,
+   "y": 192,
+   "richtung": "runter"
+  },
+  "von_waldpfad": {
+   "x": 32,
+   "y": 200,
+   "richtung": "rechts"
+  }
+ }
+}

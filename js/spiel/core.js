@@ -1,5 +1,7 @@
 /* HEX-011 Kern: rAF-Schleife mit fester Logik-Schrittweite (60 Hz) und dt-Begrenzung, Zustand, Pause, Zeichnen.
-   Platzhalter-Rechteck bewegt sich, um die Kamera zu zeigen (HEX-013: Bewegung + Kollision in hexe-figur.js; Sprites: HEX-014). */
+   HEX-015: Zeichnen Boden (Bild aus karte.boden) → Objekte + Hexe nach Fußpunkt-y sortiert (gleiches y: Objekt zuerst) → Ebene "ueber".
+   Objekt-Sprites "<sheet>#<name>" aus assets/spiel/<sheet>.png + .json (Format sprites{name:{x,y,w,h,anker,frames,fps}}).
+   Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json). */
 (function () {
   'use strict';
   var S = window.Spiel;
@@ -13,7 +15,44 @@
   var elPause = document.getElementById('pause');
   var btnWeiter = document.getElementById('btn-weiter');
 
-  var karte = null, KB = 0, KH = 0;   // HEX-012: wird per Spiel.karte.lade('test') gesetzt
+  var START = new URLSearchParams(location.search).get('karte') || 'werkstatt';
+  var karte = null, KB = 0, KH = 0;   // wird per Spiel.karte.lade(START) gesetzt
+  var GRAFIK = 'assets/spiel/';
+  var boden = null;                   // geladenes Bodenbild oder null (dann Platzhalter-Raster)
+  var sheets = {};                    // HEX-015: name -> { meta, bild } (bild null bis geladen)
+
+  // ---------- HEX-015 Grafik laden ----------
+  function ladeBoden(pfad) {
+    boden = null;
+    if (typeof pfad !== 'string') return;
+    var b = new Image();
+    b.onload = function () { boden = b; };
+    b.onerror = function () { console.warn('HEX-015: Bodenbild ' + pfad + ' fehlt, Platzhalter-Raster bleibt'); };
+    b.src = pfad;
+  }
+  function ladeSheet(name) {
+    if (sheets[name]) return;
+    var sh = sheets[name] = { meta: null, bild: null };
+    fetch(GRAFIK + name + '.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (m) {
+      var b = new Image();
+      b.onload = function () { sh.meta = m; sh.bild = b; };
+      b.onerror = function () { console.warn('HEX-015: ' + m.bild + ' fehlt, Objekt-Platzhalter bleibt'); };
+      b.src = GRAFIK + m.bild;    // bild relativ zur JSON
+    }).catch(function (e) { console.warn('HEX-015: ' + name + '.json nicht ladbar (' + e.message + '), Objekt-Platzhalter bleibt'); });
+  }
+  function spriteVon(o) {
+    if (typeof o.sprite !== 'string') return null;
+    var t = o.sprite.split('#'), sh = sheets[t[0]];
+    return sh && sh.bild && sh.meta.sprites[t[1]] ? { bild: sh.bild, s: sh.meta.sprites[t[1]] } : null;
+  }
+  // Zeichenliste: Ebene objekt + Hexe nach y sortiert (gleiches y: Objekt vor Hexe), danach Ebene ueber in Kartenreihenfolge
+  function zeichenListe(objekte, figur) {
+    var liste = [], ueber = [];
+    objekte.forEach(function (o, i) { (o.ebene === 'ueber' ? ueber : liste).push({ o: o, y: o.y, n: i, hexe: false }); });
+    liste.push({ o: figur, y: figur.y, n: objekte.length, hexe: true });
+    liste.sort(function (a, b) { return a.y - b.y || (a.hexe - b.hexe) || (a.n - b.n); });
+    return liste.concat(ueber.map(function (e) { e.ueber = true; return e; }));
+  }
   var zustand = {
     pausiert: false,
     figur: S.hexeFigur.neu(0, 0),
@@ -56,28 +95,41 @@
 
   // ---------- Zeichnen ----------
   function zeichne() {
-    var k = S.kamera, t, x, y;
+    var k = S.kamera, t;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, BREITE, HOEHE);
     if (!karte) return;
     t = karte.tile;
+    if (boden) ctx.drawImage(boden, -k.x, -k.y); else zeichneRaster(k, t);
+    // Objekte + Hexe y-sortiert, dann Ebene ueber
+    var zeit = zustand.schritte / 60;   // Spielzeit in s, steht in der Pause
+    zeichenListe(karte.objekte, zustand.figur).forEach(function (e) {
+      if (e.hexe) { S.hexeFigur.zeichne(ctx, e.o, k); return; }
+      var sp = spriteVon(e.o);
+      if (sp) {
+        var s = sp.s, n = s.frames || 1, i = n > 1 ? Math.floor(zeit * (s.fps || 1)) % n : 0;
+        ctx.drawImage(sp.bild, s.x + i * s.w, s.y, s.w, s.h, Math.round(e.o.x) - s.anker[0] - k.x, Math.round(e.o.y) - s.anker[1] - k.y, s.w, s.h);
+      } else if (e.o.fuss) {
+        // Platzhalter ohne Grafik: Fuß als Kiste
+        ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(e.o.x + e.o.fuss.x) - k.x, Math.round(e.o.y + e.o.fuss.y) - k.y, e.o.fuss.w, e.o.fuss.h);
+      }
+    });
+    if (S.karte.debug) zeichneDebug(k, t);
+  }
+
+  // Platzhalter-Raster ohne Bodenbild: Boden Schachbrett, Wand-Tiles dunkler Stein, Kartenrand sichtbar
+  function zeichneRaster(k, t) {
+    var x, y;
     var x0 = Math.max(0, Math.floor(k.x / t)), x1 = Math.min(karte.breite, Math.ceil((k.x + BREITE) / t));
     var y0 = Math.max(0, Math.floor(k.y / t)), y1 = Math.min(karte.hoehe, Math.ceil((k.y + HOEHE) / t));
     for (y = y0; y < y1; y++) {
       for (x = x0; x < x1; x++) {
-        // Platzhalter-Grafik: Boden Schachbrett, Wand-Tiles dunkler Stein (echte Grafik: HEX-015)
         ctx.fillStyle = karte.tileBlockiert(x, y) ? ((x + y) % 2 ? '#4a4038' : '#433a33') : ((x + y) % 2 ? '#2a3324' : '#26301f');
         ctx.fillRect(x * t - k.x, y * t - k.y, t, t);
       }
     }
-    // Kartenrand sichtbar machen
     ctx.strokeStyle = '#7a5a2a';
     ctx.strokeRect(0.5 - k.x, 0.5 - k.y, KB - 1, KH - 1);
-    // Objekte (Platzhalter): Fuß als Kiste
-    karte.fuesse.forEach(function (f) { ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(f.x) - k.x, Math.round(f.y) - k.y, f.w, f.h); });
-    // Platzhalter-Figur (ganzzahlig gezeichnet)
-    S.hexeFigur.zeichne(ctx, zustand.figur, k);   // Platzhalter, Sprites: HEX-014
-    if (S.karte.debug) zeichneDebug(k, t);
   }
 
   // HEX-012: Kollisions-Debug-Ansicht (Taste K): blockierte Tiles rot, Objekt-Füße gelb, Rasterlinien
@@ -114,9 +166,11 @@
   }
 
   S.zustand = zustand;
+  S.zeichenListe = zeichenListe;   // HEX-015: für Tests der y-Sortierung
   requestAnimationFrame(takt);
-  // HEX-012: Testkarte laden
-  S.karte.lade('test').then(function (k) {
+  S.karte.lade(START).then(function (k) {
+    ladeBoden(k.daten.boden);
+    k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
     karte = k; KB = k.pxBreite; KH = k.pxHoehe;
     var e = k.einstiege.start;
     zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
