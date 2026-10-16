@@ -79,7 +79,8 @@
   });
 
   // ---------- Ereignisse ----------
-  btnPlay.addEventListener('click', function () { openDialog(dlgPlay); });
+  // HEX-011: „Spielen“ führt direkt ins Spiel (Entscheidung Boss zu Plan §4, Frage 8)
+  btnPlay.addEventListener('click', function () { window.location.href = 'spiel.html'; });
 
   btnSettings.addEventListener('click', function () {
     renderSettings();

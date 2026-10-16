@@ -10,7 +10,9 @@
  *   clear()    bei "Animationen aus": eigene Zellen leeren, Zustand zurücksetzen.
  * Teile bisher:
  *   AmbientFenster  Sterne + Fledermaus in den oberen Fensterscheiben (Clip x630–746/x760–886, y85–273)
- * Später dazu (je als eigener Teil unten in PARTS eintragen): Glint, Kugel, Pflanzen.
+ *   AmbientGlint    Flaschen glitzern (9 Glanzzellen, Event 'glitzern' {x, y, strength, id})
+ *   AmbientKugel    Kristallkugel leuchtet alle 12–25 s auf (Zelle 1313/752 99×96, light.set('kugel', …))
+ *   AmbientPflanzen Pflanzen P1–P11 pendeln alle 3–8 s (assets/ambient-sprites.png, LAYOUT vom Generator)
  *
  * Abhängigkeit: TitleScreen.state.animationsOn, TitleScreen.onTick aus main.js, Event "statechange".
  */
@@ -224,6 +226,261 @@
   window.AmbientFenster = { init: init, tick: tick, clear: clear };
 })();
 
+/* ---------- Teil "Glint": Flaschen glitzern ----------
+ * 9 Flaschen mit vorhandenem Glanzlicht (Plan F2, F4, F6, F9, F11–F15, analyse/umgebung/plan-umgebung.md).
+ * Ein Glint hellt NUR die vorhandenen Glanzpixel um 1–2 harte Stufen auf (Farben aus dem bg,
+ * erzeugt von ambient-glint/glint/glanz-daten.py), kein Kreuz, keine neue Form:
+ *   strength < 0.75: Stufe 1, 1 (2 Ticks)    strength >= 0.75: Stufe 1, 2, 2, 1 (4 Ticks)    dann Ruhe.
+ * Alle 4–10 s eine zufällige Flasche, nie zweimal dieselbe hintereinander.
+ * Pro Glint einmal  document.dispatchEvent(new CustomEvent('glitzern', {detail: {x, y, strength, id}}))
+ *   x, y = hellster Glanzpixel im Originalbild (1536×1024), strength 0.5..1, id 0–8 (Reihenfolge BOTTLES).
+ * Zeichnet nur in die Glanzzellen (clearRect + Pixel); Ruhe = Zelle leer = Original (0 px).
+ */
+(function () {
+  'use strict';
+
+  var FPS = 12;
+  var GAP = [4 * FPS, 10 * FPS];                  // Abstand zwischen zwei Glints (Start zu Start)
+  var SEQ = { 1: [1, 1], 2: [1, 2, 2, 1] };       // Stufen je Tick
+
+  // <glint>
+  // erzeugt von ambient-glint/glint/glanz-daten.py aus titelbild-bg.png (nicht von Hand ändern)
+  var GLINT_PAL = ['#d0a29c','#c18d93','#f3d4bd','#dcafa8','#e5bdae','#d9b9b3','#cdaca5','#f9dec5','#e3cbbe','#fac763','#f9c466','#fdd674','#fccc6e','#fee07e','#fcd071','#e0a554','#e0a35f','#fbd16e','#fedb79','#fcd475','#fcd776','#f1bd64','#e5c16e','#bd8960','#edab69','#e8a069','#c28f5f','#c38f58','#f4ab5b','#e99f55','#d18a54','#f4aa5c','#e5974f','#c4894a','#f6b05f','#e4a75d','#f4b261','#ecad5e','#cf945f','#d3ae64','#f3bd70','#e8b171','#f7c26c','#f6bc67','#ecaa63','#efb563','#fac56b','#f7c56f','#db984e','#f6ba5d','#d4994c','#d78b44','#f7b252','#e39a4c','#f9af53','#e69e4e','#fab95d','#e8a556','#c2894a','#edb461','#faca6c','#ebb05e','#fac665','#fbc466','#fcca6b','#f5c066','#facc6f','#fdd46e','#f9ba5e','#fedf7a','#eeb85c','#fbc65b','#fedc73','#f5bb57','#fbd064','#fac464','#e9a551','#eda956','#fdd974','#f4c863','#fcd26a','#fedd78','#f7cb68','#fdd76f','#fccf6f','#f1c361','#e19a5b','#e29b5b','#eb9d5b','#f5b665','#eca45e','#e39553','#f9c571','#efb564','#f6c470','#e0a757','#da9b4f','#dda051','#e5a457','#d5a853','#e09756','#bb7e4c','#bc7b4e','#c98955','#cf8a4b','#d78c4b','#bc8552','#bf814f','#d38549','#d28446','#ce884f','#c68351','#cf834b','#cf8246','#d78e50','#c67d45','#cd8145','#ce8847','#d58b47','#d99257','#e4a95c','#e5a95c','#edb061','#eaad5d','#d69656','#cc8d4e','#a17948','#ae7a4d','#c6924e','#cd9851','#c3824a','#b28d4c','#d1a85b'];
+  // x, y, w, h = Zelle (nur Glanzpixel), cx/cy = hellster Punkt (Event); f[1]/f[2] = Stufe 1/2: dx,dy,Palettenindex
+  var BOTTLES = [
+    { id: 0, name: 'F2', x: 282, y: 146, w: 2, h: 3, cx: 282, cy: 147, f: [null, [0,0,0,1,0,1,0,1,2,1,1,3,0,2,4,1,2,3], [0,0,5,1,0,6,0,1,7,1,1,4,0,2,8,1,2,5]] },
+    { id: 1, name: 'F4', x: 228, y: 262, w: 3, h: 4, cx: 228, cy: 264, f: [null, [0,0,9,1,0,10,0,1,11,1,1,12,0,2,13,1,2,14,2,2,15,0,3,16], [0,0,17,1,0,14,0,1,18,1,1,19,0,2,13,1,2,20,2,2,21,0,3,22]] },
+    { id: 2, name: 'F6', x: 188, y: 445, w: 4, h: 5, cx: 189, cy: 448, f: [null, [0,0,23,1,0,24,2,0,25,3,0,26,0,1,27,1,1,28,2,1,29,3,1,30,1,2,31,2,2,32,3,2,16,0,3,33,1,3,34,2,3,29,3,3,35,1,4,36,2,4,37,3,4,38], [0,0,39,1,0,40,2,0,40,3,0,41,0,1,39,1,1,42,2,1,43,3,1,44,1,2,42,2,2,45,3,2,40,0,3,39,1,3,46,2,3,43,3,3,40,1,4,47,2,4,42,3,4,22]] },
+    { id: 3, name: 'F9', x: 294, y: 458, w: 3, h: 5, cx: 295, cy: 458, f: [null, [0,0,48,1,0,49,2,0,50,0,1,51,1,1,52,2,1,53,1,2,54,2,2,55,1,3,56,2,3,57,1,4,58], [0,0,59,1,0,60,2,0,59,0,1,61,1,1,62,2,1,45,1,2,63,2,2,21,1,3,64,2,3,65,1,4,39]] },
+    { id: 4, name: 'F11', x: 371, y: 482, w: 3, h: 4, cx: 371, cy: 483, f: [null, [0,0,66,1,0,67,2,0,68,0,1,69,1,1,70,2,1,71,0,2,72,1,2,73,2,2,74,0,3,75,1,3,76,2,3,77], [0,0,19,1,0,78,2,0,60,0,1,13,1,1,79,2,1,80,0,2,81,1,2,82,2,2,83,0,3,84,1,3,85,2,3,65]] },
+    { id: 5, name: 'F12', x: 261, y: 792, w: 4, h: 3, cx: 262, cy: 793, f: [null, [1,0,86,2,0,87,3,0,88,0,1,35,1,1,89,2,1,90,3,1,91,0,2,44,1,2,44], [1,0,22,2,0,21,3,0,40,0,1,40,1,1,92,2,1,42,3,1,93,0,2,40,1,2,94]] },
+    { id: 6, name: 'F13', x: 251, y: 621, w: 8, h: 6, cx: 258, cy: 624, f: [null, [7,0,39,0,1,95,1,1,95,2,1,86,3,1,86,7,1,16,1,2,96,2,2,97,3,2,98,4,2,97,5,2,97,6,2,96,7,2,16,0,3,95,1,3,97,2,3,16,3,3,35,4,3,86,5,3,98,6,3,98,7,3,44,0,4,99,5,4,16,7,4,35,6,5,100,7,5,35], [7,0,22,0,1,21,1,1,21,2,1,93,3,1,93,7,1,22,1,2,59,2,2,21,3,2,21,4,2,21,5,2,21,6,2,93,7,2,40,0,3,21,1,3,21,2,3,22,3,3,40,4,3,21,5,3,21,6,3,21,7,3,94,0,4,22,5,4,40,7,4,40,6,5,93,7,5,40]] },
+    { id: 7, name: 'F14', x: 1357, y: 255, w: 4, h: 7, cx: 1360, cy: 260, f: [null, [1,0,101,2,0,102,0,1,103,1,1,104,2,1,105,3,1,106,0,2,107,1,2,108,2,2,109,3,2,110,0,3,111,1,3,112,2,3,113,3,3,114,0,4,101,1,4,115,2,4,116,3,4,114,1,5,117,2,5,118,3,5,119,1,6,27,2,6,107], [1,0,39,2,0,39,0,1,39,1,1,120,2,1,61,3,1,39,0,2,39,1,2,120,2,2,121,3,2,120,0,3,39,1,3,120,2,3,120,3,3,61,0,4,39,1,4,35,2,4,120,3,4,122,1,5,120,2,5,123,3,5,41,1,6,41,2,6,39]] },
+    { id: 8, name: 'F15', x: 1470, y: 243, w: 6, h: 6, cx: 1474, cy: 244, f: [null, [2,0,106,3,0,106,0,1,27,1,1,103,2,1,124,3,1,124,4,1,38,0,2,106,1,2,58,2,2,125,3,2,58,4,2,125,5,2,126,0,3,127,1,3,128,2,3,129,3,3,130,4,3,33,1,4,27,2,4,33,3,4,128,4,4,129,1,5,27,2,5,27,3,5,106,4,5,131], [2,0,39,3,0,39,0,1,39,1,1,41,2,1,59,3,1,59,4,1,22,0,2,39,1,2,39,2,2,120,3,2,39,4,2,61,5,2,132,0,3,39,1,3,39,2,3,59,3,3,39,4,3,39,1,4,39,2,4,120,3,4,39,4,4,41,1,5,39,2,5,39,3,5,39,4,5,39]] }
+  ];
+  // </glint>
+
+  var ctx = null, rnd = mulberry32((Date.now() ^ 0x27d4eb2f) >>> 0);
+  var wait = 0, last = -1, cur = null;
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function rint(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+
+  function reset() { cur = null; wait = rint(GAP[0], GAP[1]); }
+
+  function drawBottle(b, lv) {
+    ctx.clearRect(b.x, b.y, b.w, b.h);
+    var f = b.f[lv];
+    if (!f) return;                                // Stufe 0: Zelle leer = Original
+    for (var i = 0; i < f.length; i += 3) {
+      ctx.fillStyle = GLINT_PAL[f[i + 2]];
+      ctx.fillRect(b.x + f[i], b.y + f[i + 1], 1, 1);
+    }
+  }
+
+  function start() {
+    var id = last < 0 ? rint(0, BOTTLES.length - 1) : rint(0, BOTTLES.length - 2);
+    if (last >= 0 && id >= last) id++;             // nie dieselbe Flasche hintereinander
+    var b = BOTTLES[id], strength = rint(50, 100) / 100;
+    cur = { b: b, seq: SEQ[strength >= 0.75 ? 2 : 1], i: 0, lv: 0 };
+    last = id;
+    document.dispatchEvent(new CustomEvent('glitzern', { detail: { x: b.cx, y: b.cy, strength: strength, id: b.id } }));
+  }
+
+  function init(context) { ctx = context; reset(); }
+
+  function tick() {
+    if (!ctx) return;
+    if (cur) cur.i++;
+    if (--wait <= 0) { if (cur && cur.lv) drawBottle(cur.b, 0); start(); wait = rint(GAP[0], GAP[1]); }
+    if (!cur) return;
+    var lv = cur.i < cur.seq.length ? cur.seq[cur.i] : 0;
+    if (lv !== cur.lv) { drawBottle(cur.b, lv); cur.lv = lv; }
+    if (!lv) cur = null;
+  }
+
+  function clear() {
+    if (!ctx) return;
+    for (var i = 0; i < BOTTLES.length; i++) ctx.clearRect(BOTTLES[i].x, BOTTLES[i].y, BOTTLES[i].w, BOTTLES[i].h);
+    reset();
+  }
+
+  window.AmbientGlint = { init: init, tick: tick, clear: clear };
+})();
+
+/* ---------- Teil "Kugel": die Kristallkugel leuchtet ab und zu auf ----------
+ * (Plan: /workspace/hexe-tools/analyse/umgebung/plan-umgebung.md, Nachweise: /workspace/hexe-tools/ambient-kugel/)
+ *
+ * Alle 12–25 s (Start zu Start) ein Aufleuchten, je Tick (12 fps):
+ *   Stufe +2 (2 Ticks, Licht 1) -> Stufe +1 (2 Ticks, Licht 0,75) -> Ruhe (Licht 0,5, 2 Ticks) -> Licht = Ruhewert (getRest).
+ * Stufen kommen aus assets/kugel-sprites.png (links +1, rechts +2, je 99×96, außerhalb des Glases
+ * transparent): jedes Glaspixel auf seiner eigenen Farbleiter, nur Farben aus titelbild-bg.png
+ * (erzeugt von ambient-kugel/kugel/kugel-daten.py, nicht von Hand ändern).
+ * Ruhe und "Animationen aus": Zelle leer (= Original) und Licht auf light.getRest('kugel') (rest in light-sources.js).
+ * Zelle x1313–1411, y752–847 (berührt keine Kerzen-, Feuer-, Fenster- oder Glanzzelle).
+ */
+(function () {
+  'use strict';
+
+  var FPS = 12;
+  var GAP = [12 * FPS, 25 * FPS];                 // Abstand zwischen zwei Aufleuchten (Start zu Start)
+  var CELL = { x: 1313, y: 752, w: 99, h: 96 };
+  // je Tick: Stufe (0 = Ruhe) und Lichtwert der Lichtquelle 'kugel'
+  // letzter Wert 'rest' = Ruhewert aus light-sources.js (light.getRest('kugel')), steht nur dort
+  var SEQ = [[2, 1], [2, 1], [1, 0.75], [1, 0.75], [0, 0.5], [0, 0.5], [0, 'rest']];
+  var warned = false;
+
+  var sheet = new Image();
+  sheet.src = 'assets/kugel-sprites.png';
+
+  var ctx = null, rnd = mulberry32((Date.now() ^ 0x165667b1) >>> 0);
+  var wait = 0, cur = -1, lv = 0;
+
+  function mulberry32(a) {
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function rint(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+
+  function light(v) {
+    var L = window.TitleScreen && window.TitleScreen.light;
+    if (!L) return;
+    if (v === 'rest') {
+      v = typeof L.getRest === 'function' ? L.getRest('kugel') : null;
+      if (v == null) {
+        if (!warned) { warned = true; console.warn('ambient.js: kein Ruhewert für kugel (light.getRest fehlt oder null), Licht unverändert'); }
+        return;
+      }
+    }
+    L.set('kugel', v);
+  }
+
+  function draw(s) {
+    ctx.clearRect(CELL.x, CELL.y, CELL.w, CELL.h);
+    if (s) ctx.drawImage(sheet, (s - 1) * CELL.w, 0, CELL.w, CELL.h, CELL.x, CELL.y, CELL.w, CELL.h);
+  }
+
+  function reset() { cur = -1; lv = 0; wait = rint(GAP[0], GAP[1]); }
+
+  function init(context) { ctx = context; reset(); }
+
+  function tick() {
+    if (!ctx) return;
+    if (cur < 0) {
+      if (--wait > 0) return;
+      if (!sheet.complete || !sheet.naturalWidth) { wait = 1; return; }   // Bild noch nicht da: nächsten Tick
+      cur = 0; wait = rint(GAP[0], GAP[1]) - 1;
+    } else {
+      wait--;
+    }
+    var st = SEQ[cur];
+    if (st[0] !== lv) { draw(st[0]); lv = st[0]; }
+    if (cur === 0 || st[1] !== SEQ[cur - 1][1]) light(st[1]);
+    if (++cur >= SEQ.length) cur = -1;
+  }
+
+  function clear() {
+    if (!ctx) return;
+    ctx.clearRect(CELL.x, CELL.y, CELL.w, CELL.h);
+    reset();
+    light('rest');
+  }
+
+  window.AmbientKugel = { init: init, tick: tick, clear: clear };
+})();
+
+/* ---------- Teil "Pflanzen": ab und zu pendelt ein Kräuterbündel/Blatt ----------
+ * (Plan: /workspace/hexe-tools/ambient/js/ambient.js, Kopfkommentar "Planer"; Masken/Nachweise: /workspace/hexe-tools/hex004-pflanzen/)
+ *
+ * Alle 3–8 s (Start zu Start) ein zufälliges Bündel P1–P11 (nie dasselbe zweimal hintereinander), Pendel
+ *   +1, +2, +1, 0, −1, −2, −1, Ruhe (Startrichtung zufällig; ±2 je 3 Ticks, sonst 2–3 Ticks je Stufe).
+ * Jede Stufe verschiebt um genau 1 px; ±2 bewegt nur ein größeres Stück als ±1 (Generator tools/ambient-sprites.py).
+ * Frames: assets/ambient-sprites.png, je Pflanze f = [s−2, s−1, s+1, s+2], nur geänderte Pixel (Rest transparent):
+ *   Zelle leeren, Frame zeichnen. Ruhe und "Animationen aus": Zelle leer (= Original).
+ * LAYOUT wird vom Generator aus assets/ambient-layout.json eingetragen (nicht von Hand ändern).
+ */
+(function () {
+  'use strict';
+
+  var FPS = 12;
+  var GAP = [3 * FPS, 8 * FPS];
+  var LAYOUT = /* LAYOUT-START */ {"bottles":[{"name":"F2","x":282,"y":146,"w":2,"h":3,"f":[[0,0],[2,0]],"gx":282,"gy":147},{"name":"F4","x":228,"y":262,"w":3,"h":4,"f":[[4,0],[7,0]],"gx":229,"gy":264},{"name":"F6","x":188,"y":445,"w":5,"h":5,"f":[[10,0],[15,0]],"gx":190,"gy":447},{"name":"F9","x":294,"y":458,"w":3,"h":5,"f":[[20,0],[23,0]],"gx":295,"gy":460},{"name":"F11","x":370,"y":482,"w":4,"h":4,"f":[[26,0],[30,0]],"gx":372,"gy":484},{"name":"F12","x":261,"y":792,"w":5,"h":3,"f":[[34,0],[39,0]],"gx":263,"gy":793},{"name":"F13","x":250,"y":621,"w":11,"h":9,"f":[[44,0],[55,0]],"gx":255,"gy":625},{"name":"F14","x":1357,"y":255,"w":4,"h":7,"f":[[66,0],[70,0]],"gx":1358,"gy":258},{"name":"F15","x":1469,"y":243,"w":7,"h":6,"f":[[74,0],[81,0]],"gx":1472,"gy":246}],"kugel":{"name":"Kugel","x":1313,"y":752,"w":99,"h":96,"f":[[88,0],[187,0]]},"plants":[{"name":"P1","x":295,"y":119,"w":63,"h":62,"f":[[286,0],[349,0],[412,0],[475,0]]},{"name":"P2","x":371,"y":134,"w":61,"h":65,"f":[[538,0],[599,0],[660,0],[721,0]]},{"name":"P3","x":435,"y":97,"w":78,"h":101,"f":[[782,0],[860,0],[938,0],[0,101]]},{"name":"P4","x":418,"y":334,"w":92,"h":84,"f":[[78,101],[170,101],[262,101],[354,101]]},{"name":"P5","x":1157,"y":174,"w":99,"h":108,"f":[[446,101],[545,101],[644,101],[743,101]]},{"name":"P6","x":1256,"y":154,"w":90,"h":116,"f":[[842,101],[932,101],[0,217],[90,217]]},{"name":"P7","x":1120,"y":405,"w":170,"h":85,"f":[[180,217],[350,217],[520,217],[690,217]]},{"name":"P8","x":276,"y":609,"w":87,"h":39,"f":[[860,217],[0,333],[87,333],[174,333]]},{"name":"P9","x":149,"y":894,"w":67,"h":94,"f":[[261,333],[328,333],[395,333],[462,333]]},{"name":"P10","x":1350,"y":848,"w":65,"h":84,"f":[[529,333],[594,333],[659,333],[724,333]]},{"name":"P11","x":420,"y":874,"w":38,"h":23,"f":[[789,333],[827,333],[865,333],[903,333]]}]} /* LAYOUT-END */;
+  var PLANTS = LAYOUT && LAYOUT.plants || [];
+  var IDX = { '-2': 0, '-1': 1, '1': 2, '2': 3 };
+  var PEND = [1, 2, 1, 0, -1, -2, -1];
+
+  var sheet = new Image();
+  sheet.src = 'assets/ambient-sprites.png';
+
+  var ctx = null, rnd = mulberry32((Date.now() ^ 0x2c1b3c6d) >>> 0);
+  var wait = 0, cur = null, last = -1;
+
+  function mulberry32(a) {
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function rint(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+
+  function draw(c, f) {
+    ctx.clearRect(c.x, c.y, c.w, c.h);
+    if (f >= 0) ctx.drawImage(sheet, c.f[f][0], c.f[f][1], c.w, c.h, c.x, c.y, c.w, c.h);
+  }
+
+  function reset() { cur = null; wait = rint(GAP[0], GAP[1]); }
+  function init(context) { ctx = context; reset(); }
+
+  function start() {
+    var id = rint(0, PLANTS.length - 2);
+    if (last >= 0 && id >= last) id++;             // nie dasselbe Bündel hintereinander
+    last = id;
+    var d = rnd() < 0.5 ? 1 : -1;
+    cur = { c: PLANTS[id], i: 0, steps: PEND.map(function (s) {
+      return { f: s === 0 ? -1 : IDX[String(s * d)], n: Math.abs(s) === 2 ? 3 : rint(2, 3) };
+    }) };
+    cur.left = cur.steps[0].n; cur.f = cur.steps[0].f;
+    draw(cur.c, cur.f);
+  }
+
+  function tick() {
+    if (!ctx || PLANTS.length < 2) return;
+    wait--;
+    if (cur) {
+      if (--cur.left > 0) return;
+      if (++cur.i >= cur.steps.length) { draw(cur.c, -1); cur = null; return; }
+      var st = cur.steps[cur.i]; cur.left = st.n;
+      if (st.f !== cur.f) { draw(cur.c, st.f); cur.f = st.f; }
+      return;
+    }
+    if (wait > 0) return;
+    if (!sheet.complete || !sheet.naturalWidth) { wait = 1; return; }
+    wait = rint(GAP[0], GAP[1]);
+    start();
+  }
+
+  function clear() {
+    if (!ctx) return;
+    for (var i = 0; i < PLANTS.length; i++) ctx.clearRect(PLANTS[i].x, PLANTS[i].y, PLANTS[i].w, PLANTS[i].h);
+    reset();
+  }
+
+  window.AmbientPflanzen = { init: init, tick: tick, clear: clear };
+})();
+
 /* ---------- Verteiler: ein Tick für alle Teile ---------- */
 (function () {
   'use strict';
@@ -244,8 +501,8 @@
   var ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
 
-  // Reihenfolge = Zeichenreihenfolge im Tick. Neue Teile (Glint, Kugel, Pflanzen) hier anhängen.
-  var PARTS = [window.AmbientFenster].filter(Boolean);
+  // Reihenfolge = Zeichenreihenfolge im Tick. Neue Teile (Pflanzen) hier anhängen.
+  var PARTS = [window.AmbientFenster, window.AmbientGlint, window.AmbientKugel, window.AmbientPflanzen].filter(Boolean);
   PARTS.forEach(function (p) { p.init(ctx); });
 
   TS.onTick(function () {

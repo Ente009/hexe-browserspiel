@@ -1,0 +1,218 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Spielkarte (HEX-012)",
+ "type": "object",
+ "required": [
+  "id",
+  "breite",
+  "hoehe",
+  "tile",
+  "kollision",
+  "objekte",
+  "interaktionen",
+  "ausgaenge",
+  "einstiege"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "description": "Standort-ID, = Dateiname ohne .json"
+  },
+  "breite": {
+   "type": "integer",
+   "minimum": 1,
+   "description": "in Tiles"
+  },
+  "hoehe": {
+   "type": "integer",
+   "minimum": 1,
+   "description": "in Tiles"
+  },
+  "tile": {
+   "type": "integer",
+   "const": 16,
+   "description": "Tile-Größe in px"
+  },
+  "boden": {
+   "description": "Bodenbild (Pfad) oder null = Platzhalter-Raster; Tile-Layer folgt mit HEX-015",
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "kollision": {
+   "type": "array",
+   "description": "hoehe Zeilen, je breite Zeichen '0' frei / '1' blockiert",
+   "items": {
+    "type": "string",
+    "pattern": "^[01]+$"
+   }
+  },
+  "objekte": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "typ",
+     "x",
+     "y"
+    ],
+    "properties": {
+     "typ": {
+      "type": "string"
+     },
+     "x": {
+      "type": "number",
+      "description": "Weltpixel, Fußpunkt"
+     },
+     "y": {
+      "type": "number"
+     },
+     "sprite": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "fuss": {
+      "type": "object",
+      "description": "Kollisionsrechteck relativ zu x/y (nur Fuß blockiert)",
+      "required": [
+       "x",
+       "y",
+       "w",
+       "h"
+      ],
+      "properties": {
+       "x": {
+        "type": "number"
+       },
+       "y": {
+        "type": "number"
+       },
+       "w": {
+        "type": "number",
+        "minimum": 0
+       },
+       "h": {
+        "type": "number",
+        "minimum": 0
+       }
+      }
+     }
+    }
+   }
+  },
+  "interaktionen": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "x",
+     "y",
+     "w",
+     "h"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "x": {
+      "type": "number"
+     },
+     "y": {
+      "type": "number"
+     },
+     "w": {
+      "type": "number",
+      "minimum": 0
+     },
+     "h": {
+      "type": "number",
+      "minimum": 0
+     },
+     "text": {
+      "type": "string"
+     },
+     "aktion": {
+      "type": "string"
+     }
+    }
+   },
+   "description": "id muss innerhalb der Karte eindeutig sein"
+  },
+  "ausgaenge": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "zone",
+     "ziel",
+     "einstieg"
+    ],
+    "properties": {
+     "zone": {
+      "type": "object",
+      "required": [
+       "x",
+       "y",
+       "w",
+       "h"
+      ],
+      "properties": {
+       "x": {
+        "type": "number"
+       },
+       "y": {
+        "type": "number"
+       },
+       "w": {
+        "type": "number"
+       },
+       "h": {
+        "type": "number"
+       }
+      }
+     },
+     "ziel": {
+      "type": "string"
+     },
+     "einstieg": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "einstiege": {
+   "type": "object",
+   "required": [
+    "start"
+   ],
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "x",
+     "y"
+    ],
+    "properties": {
+     "x": {
+      "type": "number"
+     },
+     "y": {
+      "type": "number"
+     },
+     "richtung": {
+      "enum": [
+       "hoch",
+       "runter",
+       "links",
+       "rechts"
+      ]
+     }
+    }
+   }
+  }
+ },
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg."
+}

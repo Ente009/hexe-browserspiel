@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Hexenwerkstatt</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/spiel.css">
+</head>
+<body>
+  <!-- HEX-011 Spielgerüst: logische Fläche 480×320, ganzzahlig skaliert -->
+  <main id="spiel-buehne">
+    <canvas id="spiel" width="480" height="320" aria-label="Spielfläche"></canvas>
+    <!-- Touch-Steuerung (Entscheidung Boss: Steuerkreuz + E-Knopf, zusätzlich zur Tastatur) -->
+    <div id="touch" aria-hidden="true">
+      <div id="dpad"><span class="pfeil h">▲</span><span class="pfeil r">▶</span><span class="pfeil u">▼</span><span class="pfeil l">◀</span></div>
+      <div id="knopf-e">E</div>
+      <div id="knopf-pause">II</div>
+    </div>
+    <p id="hinweis-quer">Tipp: Handy quer halten – dann wird das Bild größer.</p>
+    <p id="spiel-fehler" hidden role="alert"></p>
+    <div id="pause" hidden role="dialog" aria-modal="true" aria-labelledby="pause-titel">
+      <div class="pause-box">
+        <h2 id="pause-titel">Pause</h2>
+        <button type="button" id="btn-weiter">Weiter</button>
+        <a id="btn-titel" href="index.html">Zurück zum Titel</a>
+      </div>
+    </div>
+  </main>
+  <!-- Reihenfolge: Eingabe → Kamera → Karte (Lader) → Kern (lädt Karte, startet die Schleife) -->
+  <script src="js/spiel/eingabe.js"></script>
+  <script src="js/spiel/kamera.js"></script>
+  <script src="js/spiel/karte.js"></script>
+  <script src="js/spiel/core.js"></script>
+</body>
+</html>
