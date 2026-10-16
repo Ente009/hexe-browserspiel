@@ -9,12 +9,12 @@
  *   Stufen LEVELS = [1.00, 0.94, 0.97, 1.01, 1.03], Neigungen LEANS = [0, -1, +1].
  *
  * Flackern: flicker springt meist zur Nachbarstufe (selten zwei Stufen, nie 0.94 -> 1.03)
- * und hält 1–4 Ticks. Alle 3–8 s ein
+ * und hält 1–2 Ticks (K3: 1–3; vorher 1–4 bzw. 2–6). Alle 3–8 s ein
  * kurzer Luftzug (Spitze 2–3 Ticks nach links, danach 1 Tick zurück). K3 (Laterne,
  * hinter Glas) bleibt ruhiger: nur 0.94–1.01, längere Haltezeiten, kein Luftzug.
  *
  * Licht: Es gibt genau eine Schnittstelle. Im selben Tick wie die Flamme ruft das Modul
- *   TitleScreen.light.set('kerze-1' … 'kerze-4', flicker/1.03 linear gestreckt auf 0.75–1.0; aus: 0.97)
+ *   TitleScreen.light.set('kerze-1' … 'kerze-4', flicker/1.03 linear gestreckt auf 0.55–1.0; aus: light.getRest)
  * auf, sofern TitleScreen.light existiert. Die Lichtquellen selbst (Position, Radius,
  * Farbe) legt light.add an anderer Stelle an; set ist bis dahin wirkungslos.
  *
@@ -57,7 +57,7 @@
 
   CANDLES.forEach(function (c, i) {
     c.step = 2;                                  // Index in LADDER (1.00)
-    c.hold = rint(1, 4);
+    c.hold = rint(1, 2);
     c.lean = 0;
     c.gust = [];                                 // geplante Neigungen für den Luftzug
     c.nextGust = rint(3 * FPS, 8 * FPS) + i * 7; // nicht alle gleichzeitig
@@ -77,18 +77,26 @@
 
   // Licht: flicker/1.03 liegt nur zwischen 0.913 und 1.0, das ist kleiner als die
   // Hysterese von ±0.03 in light.js. Deshalb wird nur der Lichtwert linear auf
-  // 0.75–1.0 gestreckt (Prüfer). Die Flamme selbst bleibt unverändert.
+  // 0.55–1.0 gestreckt (vorher 0.75–1.0). Die Flamme selbst bleibt unverändert.
   var LIGHT_LO = LADDER[0] / MAX_FLICKER;        // 0.913
   function sendLight(c) {
     var light = window.TitleScreen.light;
     if (!light || !light.set) return;
     var v = LADDER[c.step] / MAX_FLICKER;
-    light.set(c.id, 0.75 + (v - LIGHT_LO) / (1 - LIGHT_LO) * 0.25);
+    light.set(c.id, 0.55 + (v - LIGHT_LO) / (1 - LIGHT_LO) * 0.45);
   }
-  // Animationen aus: ungestreckter Ruhewert wie bisher (1/1.03 ≈ 0.97)
+  // Animationen aus: Ruhewert je Kerze nur aus light-sources.js (rest, light.getRest).
+  // Fehlt getRest oder liefert null: nichts setzen, einmalig je Kerze warnen.
+  var restWarned = {};
   function sendRestLight(c) {
     var light = window.TitleScreen.light;
-    if (light && light.set) light.set(c.id, 1 / MAX_FLICKER);
+    if (!light || !light.set) return;
+    var r = typeof light.getRest === 'function' ? light.getRest(c.id) : null;
+    if (r == null) {
+      if (!restWarned[c.id]) { restWarned[c.id] = true; console.warn('candles.js: kein Ruhewert für ' + c.id + ' (light.getRest fehlt oder null), Licht unverändert'); }
+      return;
+    }
+    light.set(c.id, r);
   }
 
   function step(c) {
@@ -109,13 +117,13 @@
     c.lean = 0;
     if (--c.hold > 0) return;
     var top = c.calm ? 3 : LADDER.length - 1;    // K3: höchstens 1.01
-    var d = Math.random() < 0.15 ? 2 : 1;          // meist Nachbarstufe, selten zwei Stufen
+    var d = Math.random() < 0.15 ? 2 : 1;        // meist Nachbarstufe, selten zwei Stufen
     var s = c.step + (Math.random() < 0.5 ? -d : d);
     if (s < 0) s = c.step + d;
     if (s > top) s = c.step - d;
     s = Math.max(0, Math.min(top, s));
     c.step = s;
-    c.hold = c.calm ? rint(2, 6) : rint(1, 4);
+    c.hold = c.calm ? rint(1, 3) : rint(1, 2);   // vorher 2–6 / 1–4: etwa doppelt so oft
   }
 
   // ---------- Takt ----------
@@ -130,12 +138,12 @@
 
   // "Animationen aus": Frame 0 (= Original). Die Zellen werden dafür geleert, dann zeigt
   // der Hintergrund selbst das Original – bei jeder Bildschirmgröße 0 Pixel Abweichung.
-  // Licht auf den Wert für flicker 1.
+  // Licht auf den Ruhewert aus light-sources.js (light.getRest, siehe sendRestLight).
   function sync() {
     if (window.TitleScreen.state.animationsOn) return;
     for (var i = 0; i < CANDLES.length; i++) {
       var c = CANDLES[i];
-      c.step = 2; c.lean = 0; c.gust = []; c.hold = rint(1, 4);
+      c.step = 2; c.lean = 0; c.gust = []; c.hold = rint(1, 2);
       ctx.clearRect(c.x, c.y, c.w, c.h);
       c.drawn = -1;
       sendRestLight(c);

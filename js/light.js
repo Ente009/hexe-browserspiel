@@ -9,6 +9,18 @@
  * Hysterese. Die Farbe kommt aus der Palette der stärksten Quelle in der Zelle,
  * es entstehen keine Mischfarben. Kein Weichzeichnen, kein Verlauf.
  *
+ * Farbgrenze (Regel 1): Welche Quelle eine Zelle färbt, entscheidet für alle Quellen ihr
+ * Ruhewert (rest * intensity * (1 - d2), beim Kessel rest * 0.7 mit base 0). Flackern,
+ * Blubb und set() ändern nur die Helligkeit, nie die Farbgrenze. Nur Quellen mit
+ * follow: true (light-sources.js, die Kugel) färben mit ihrem aktuellen Wert. Damit steht
+ * die Grenze fest und ist laufend gleich wie bei "Animationen aus".
+ * Stufen (Regel 2): Ändert sich der Rohwert einer Zelle seit dem letzten Tick nicht
+ * (|Δ| < STILL), bekommt sie nach HOLD ihre Stufe ohne Hysterese, genau wie im Ruhebild.
+ * Verglichen wird der ungekappte Wert (vor min(1, ...)): Eine gekappte Quelle (Kessel am
+ * Blubb-Höhepunkt) steht nur scheinbar still und behält ihre Hysterese.
+ * Die Hysterese wirkt nur, solange sich der Wert ändert. So hängt kein Ruhezustand
+ * davon ab, wie hell die Zelle vorher war.
+ *
  * Schnittstelle (für andere Module):
  *   TitleScreen.light.add({ id, x, y, radius, rx, ry, intensity, color, flicker, speed, rest, event })
  *       x, y, radius in Originalpixeln; intensity 0..1; color 'gruen' | 'warm' | 'kuehl'
@@ -16,6 +28,11 @@
  *       flicker 0..1, speed in Wellen pro Sekunde: nur für Quellen ohne eigenen Wert
  *       rest: Wert bei "Animationen aus" (Standard 1)
  *       event: 'blubb' -> Wert folgt den Kessel-Blasen (siehe onBlubb)
+ *       follow: true -> die Farbfläche folgt dem aktuellen Wert (z. B. Kugel leuchtet per
+ *       set() auf); ohne follow färbt die Quelle immer mit ihrem Ruhewert rest
+ *       hold, hyst: Haltezeit (ms) und Hysterese für Zellen, die diese Quelle färbt
+ *       (Standard HOLD, HYST). Für Quellen mit festen Stufen, die schneller wechseln als
+ *       HOLD (Kerzen 8/s), kleiner setzen, sonst verschlucken Haltezeit und Hysterese Wechsel
  *   TitleScreen.light.set(id, v)   v 0..1, z. B. aus dem Kerzenmodul im selben Takt wie die Flamme
  *   TitleScreen.light.remove(id)
  * light.js würfelt nie: Flackern ohne eigenen Wert ist eine feste Summe aus drei Sinuswellen.
@@ -32,6 +49,7 @@
   var HYST = 0.03;                             // gegen Zittern an den Schwellen
   var HOLD = 150;                              // ms, die eine Zelle mindestens auf ihrer Stufe bleibt
   var AMBIENT = 0.485;                         // Stufe 0: minimal abdunkeln (0.5 = neutral)
+  var STILL = 1e-6;                            // Rohwert gilt als unverändert (Float32-Rauschen ≪ 1e-6 ≪ HYST)
 
   // soft-light-Werte je Farbe und Stufe 1..3 (R, G, B in 0..255, 128 = neutral)
   var PALETTE = {
@@ -60,6 +78,8 @@
   var owner = new Int16Array(GW * GH);
   var level = new Uint8Array(GW * GH);
   var since = new Float64Array(GW * GH);       // Zeitpunkt des letzten Stufenwechsels
+  var rawSum = new Float64Array(GW * GH);      // ungekappte Summe der Quellwerte (Regel 2)
+  var lastRaw = new Float64Array(GW * GH);     // rawSum der Zelle im letzten Tick (Regel 2)
   var drawnLevel = new Uint8Array(GW * GH);
   var drawnColor = new Int8Array(GW * GH);
 
@@ -78,7 +98,9 @@
       color: COLORS.indexOf(cfg.color) >= 0 ? COLORS.indexOf(cfg.color) : 1,
       flicker: +cfg.flicker || 0, speed: +cfg.speed || 1,
       rest: cfg.rest == null ? 1 : +cfg.rest,
-      event: cfg.event || null,
+      event: cfg.event || null, follow: !!cfg.follow,
+      hold: cfg.hold == null ? HOLD : Math.max(0, +cfg.hold),
+      hyst: cfg.hyst == null ? HYST : Math.max(0, +cfg.hyst),
       value: cfg.rest == null ? 1 : +cfg.rest,
       external: false, phase: hash(String(cfg.id)) / 997 * 2 * Math.PI,
       base: 0, pulse: 0
@@ -131,7 +153,8 @@
       var L = lights[i];
       if (L.event === 'blubb') {
         L.pulse *= Math.exp(-dt / 400);                 // nach ~1,2 s auf 5 %
-        L.value = Math.min(1, L.rest * (0.7 + L.base * 0.6) + L.pulse * 0.4);
+        L.raw = L.rest * (0.7 + L.base * 0.6) + L.pulse * 0.4;   // ungekappt (Regel 2)
+        L.value = Math.min(1, L.raw);
       } else if (!L.external && L.flicker > 0) {
         var w = 2 * Math.PI * L.speed * t + L.phase;
         var n = (Math.sin(w) + 0.6 * Math.sin(w * 1.731 + 1.3) + 0.35 * Math.sin(w * 2.917 + 2.1)) / 1.95;
@@ -140,15 +163,21 @@
     }
   }
 
+  // Ruhewert einer Quelle (Wert bei "Animationen aus"), base = 0, ohne Puls
+  function restValue(L) { return L.event === 'blubb' ? Math.min(1, L.rest * 0.7) : L.rest; }
+
   // ---------- Lichtkarte ----------
   function compute(now) {                      // now = null: ohne Hysterese (Ruhebild)
-    sum.fill(0); best.fill(0); owner.fill(-1); pulseSum.fill(0);
+    sum.fill(0); best.fill(0); owner.fill(-1); pulseSum.fill(0); rawSum.fill(0);
     for (var k = 0; k < lights.length; k++) {
       var L = lights[k];
       var amp = L.intensity * L.value;
-      if (amp <= 0) continue;
-      // Farbe (owner) ohne Blubb-Puls: feste Farbgrenze; der Puls zählt nur in Zellen mit Kesselfarbe
-      var own = L.event === 'blubb' ? L.intensity * Math.min(1, L.rest * (0.7 + L.base * 0.6)) : amp;
+      var ramp = L.intensity * (L.raw == null || L.external ? L.value : L.raw);   // Regel 2: vor min(1, ...)
+      // Regel 1: Farbe (owner) aus dem Ruhewert; nur Quellen mit follow färben mit dem aktuellen Wert
+      var own = L.intensity * (L.follow ? L.value : restValue(L));
+      if (amp <= 0 && own <= 0) continue;
+      // Helligkeit: alles außer dem Blubb-Puls zählt überall, der Puls nur in Zellen mit Kesselfarbe
+      var lit = L.event === 'blubb' ? Math.min(amp, L.intensity * Math.min(1, L.rest * (0.7 + L.base * 0.6))) : amp;
       var rx = L.rx, ry = L.ry, rx2 = rx * rx, ry2 = ry * ry;
       var gx0 = Math.max(0, Math.floor((L.x - rx) / CELL)), gx1 = Math.min(GW - 1, Math.floor((L.x + rx) / CELL));
       var gy0 = Math.max(0, Math.floor((L.y - ry) / CELL)), gy1 = Math.min(GH - 1, Math.floor((L.y + ry) / CELL));
@@ -159,27 +188,35 @@
           // normierter Abstand; Kreis (rx = ry) genau wie bisher gerechnet -> bitgleiche Karte
           var d2 = rx === ry ? (dx * dx + dy * dy) / rx2 : dx * dx / rx2 + dy * dy / ry2;
           if (d2 >= 1) continue;
-          var c = amp * (1 - d2);                    // Größe fest, nur die Stärke ändert sich
+          var f = 1 - d2;                            // Größe fest, nur die Stärke ändert sich
           var j = gy * GW + gx;
-          var o = own * (1 - d2);
-          sum[j] += o; pulseSum[j] += c - o;
+          var o = own * f, b = lit * f;
+          sum[j] += b; pulseSum[j] += amp * f - b; rawSum[j] += ramp * f;
           if (o > best[j]) { best[j] = o; owner[j] = k; }
         }
       }
     }
     for (var i = 0; i < sum.length; i++) {
       var v = Math.min(1, sum[i] + (owner[i] >= 0 && lights[owner[i]].event === 'blubb' ? pulseSum[i] : 0)), lv = level[i];
+      var still = Math.abs(rawSum[i] - lastRaw[i]) < STILL;
+      lastRaw[i] = rawSum[i];
       if (now === null) {
-        lv = v >= STEPS[2] ? 3 : v >= STEPS[1] ? 2 : v >= STEPS[0] ? 1 : 0;
+        lv = stepOf(v);
         since[i] = 0;
-      } else if (now - since[i] >= HOLD) {
-        while (lv < 3 && v >= STEPS[lv] + HYST) lv++;
-        while (lv > 0 && v < STEPS[lv - 1] - HYST) lv--;
+      } else if (now - since[i] >= (owner[i] >= 0 ? lights[owner[i]].hold : HOLD)) {
+        var hy = owner[i] >= 0 ? lights[owner[i]].hyst : HYST;
+        if (still) lv = stepOf(v);               // Regel 2: Wert steht -> Stufe wie im Ruhebild
+        else {
+          while (lv < 3 && v >= STEPS[lv] + hy) lv++;
+          while (lv > 0 && v < STEPS[lv - 1] - hy) lv--;
+        }
         if (lv !== level[i]) since[i] = now;
       }
       level[i] = lv;
     }
   }
+
+  function stepOf(v) { return v >= STEPS[2] ? 3 : v >= STEPS[1] ? 2 : v >= STEPS[0] ? 1 : 0; }
 
   // Farbe einer Zelle: Palette der stärksten Quelle. Hält eine Zelle ihre Stufe nur noch
   // durch Hysterese/Haltezeit (keine Quelle trägt mehr bei), bleibt die zuletzt gezeichnete
