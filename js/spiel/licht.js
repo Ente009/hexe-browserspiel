@@ -56,10 +56,9 @@
 
   function add(cfg) {
     remove(cfg.id, true);
-    var r = +cfg.radius || 0;
+    var r = +cfg.radius || 0, rest = cfg.rest == null ? 1 : +cfg.rest;   // Ruhewert (Standard 1) ist auch der Startwert
     lights.push({ id: String(cfg.id), typ: cfg.typ || null, x: +cfg.x, y: +cfg.y, rx: +cfg.rx || r, ry: +cfg.ry || r,
-      intensity: cfg.intensity == null ? 1 : +cfg.intensity, rest: cfg.rest == null ? 1 : +cfg.rest,
-      value: cfg.rest == null ? 1 : +cfg.rest });
+      intensity: cfg.intensity == null ? 1 : +cfg.intensity, rest: rest, value: rest });
     dirty = true;
     return String(cfg.id);
   }

@@ -128,7 +128,8 @@
         }
       }
     },
-    zeichne: function (ctx, k) {
+    zeichne: function () {},                       // HEX-019c: Katze nur noch über sprites() (y-sortiert von core)
+    zeichneKatze: function (ctx, k) {
       if (!this.aktiv) return;
       var b = this.blick, x = this.x, y = this.platz.y, laeuft = this.x !== this.ziel, f = this.frame % 2, c = PAL.nacht;
       function r(dx, dy, w, h, col) { px(ctx, k, b > 0 ? x + dx : x - dx - w, y + dy, w, h, col || c); }
@@ -142,6 +143,11 @@
         if (f) { r(-6, -2, 3, 1); r(-7, -4, 1, 2); } else { r(-6, -1, 3, 1); r(-6, -3, 1, 2); }        // Schwanz wippt (Idle)
       }
     },
+    sprite: function () {
+      if (!this.aktiv) return null;
+      var self = this;
+      return { x: this.x, y_fuss: this.platz.y, zeichne: function (ctx, k) { self.zeichneKatze(ctx, k); } };   // platz.y = katze.y + katze.h
+    },
     clear: function () { this.aktiv = false; this.platz = null; this.schritt = -1; }
   };
 
@@ -154,6 +160,7 @@
       for (var i = 0; i < TEILE.length; i++) TEILE[i].zeichne(ctx, k);
       ctx.restore();
     },
+    sprites: function () { var s = Katze.sprite(); return s ? [s] : []; },   // HEX-019c: [{x, y_fuss, zeichne(ctx, kamera)}]
     clear: function () { for (var i = 0; i < TEILE.length; i++) TEILE[i].clear(); },
     _teile: { laternen: Laternen, blaetter: Blaetter, dampf: Dampf, katze: Katze }   // nur für Tests
   };

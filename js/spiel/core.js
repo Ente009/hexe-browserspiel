@@ -5,6 +5,7 @@
    HEX-018: Licht (licht.js) nach den Objekten/Ebene ueber, vor Textblase, Debug und Abblende; Lichttakt aus der Spielzeit (steht in der Pause).
    HEX-019a: optionale Deko (js/spiel/deko.js, HEX-019b) über Spiel.deko {init(karte), tick(spielzeitMs), zeichne(ctx, kamera), clear()};
    nur wenn Spiel.einstellungen.animationen === true und die Funktion existiert; tick nicht in der Pause; zeichne nach Ebene ueber, vor Licht.
+   HEX-019c: zusätzlich optional Spiel.deko.sprites() → [{x, y_fuss, zeichne(ctx, kamera)}] in der y-Sortierung (nur bei animationen true).
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
@@ -50,10 +51,12 @@
     return sh && sh.bild && sh.meta.sprites[t[1]] ? { bild: sh.bild, s: sh.meta.sprites[t[1]] } : null;
   }
   // Zeichenliste: Ebene objekt + Hexe nach y sortiert (gleiches y: Objekt vor Hexe), danach Ebene ueber in Kartenreihenfolge
-  function zeichenListe(objekte, figur) {
+  // HEX-019c: Deko-Sprites {x, y_fuss, zeichne} laufen wie Objekte mit (gleiches y: vor der Hexe, untereinander nach Reihenfolge)
+  function zeichenListe(objekte, figur, dekoSprites) {
     var liste = [], ueber = [];
     objekte.forEach(function (o, i) { (o.ebene === 'ueber' ? ueber : liste).push({ o: o, y: o.y, n: i, hexe: false }); });
     liste.push({ o: figur, y: figur.y, n: objekte.length, hexe: true });
+    (dekoSprites || []).forEach(function (d, j) { liste.push({ o: d, y: +d.y_fuss, n: objekte.length + 1 + j, hexe: false, deko: true }); });
     liste.sort(function (a, b) { return a.y - b.y || (a.hexe - b.hexe) || (a.n - b.n); });
     return liste.concat(ueber.map(function (e) { e.ueber = true; return e; }));
   }
@@ -71,11 +74,18 @@
 
   // ---------- HEX-019a Deko (optional) ----------
   var dekoAus = false, dekoKarte = false;
+  function dekoFehler(name, e) { dekoAus = true; console.error('HEX-019: Spiel.deko.' + name + ' fehlgeschlagen, Deko aus: ' + e.message); }
   function deko(name, a, b) {
     if (dekoAus || !S.einstellungen || S.einstellungen.animationen !== true) return;
     var d = S.deko;
     if (!d || typeof d[name] !== 'function') return;
-    try { d[name](a, b); } catch (e) { dekoAus = true; console.error('HEX-019: Spiel.deko.' + name + ' fehlgeschlagen, Deko aus: ' + e.message); }
+    try { return d[name](a, b); } catch (e) { dekoFehler(name, e); }
+  }
+  // HEX-019c: optionale Sprites für die y-Sortierung; nur gültige Einträge (y_fuss Zahl, zeichne Funktion)
+  function dekoSprites() {
+    var l = deko('sprites');
+    if (!Array.isArray(l)) return [];
+    return l.filter(function (d) { return d && isFinite(d.y_fuss) && typeof d.zeichne === 'function'; });
   }
 
   // ---------- Ganzzahlige Skalierung ----------
@@ -193,8 +203,9 @@
     if (boden) ctx.drawImage(boden, -k.x, -k.y); else zeichneRaster(k, t);
     // Objekte + Hexe y-sortiert, dann Ebene ueber
     var zeit = zustand.schritte / 60;   // Spielzeit in s, steht in der Pause
-    zeichenListe(karte.objekte, zustand.figur).forEach(function (e) {
+    zeichenListe(karte.objekte, zustand.figur, dekoSprites()).forEach(function (e) {
       if (e.hexe) { S.hexeFigur.zeichne(ctx, e.o, k); return; }
+      if (e.deko) { if (!dekoAus) { try { e.o.zeichne(ctx, k); } catch (err) { dekoFehler('sprites().zeichne', err); } } return; }
       var sp = spriteVon(e.o);
       if (sp) {
         var s = sp.s, n = s.frames || 1, i = n > 1 ? Math.floor(zeit * (s.fps || 1)) % n : 0;
