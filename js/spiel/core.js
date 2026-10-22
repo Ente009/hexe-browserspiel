@@ -2,6 +2,7 @@
    HEX-015: Zeichnen Boden (Bild aus karte.boden) → Objekte + Hexe nach Fußpunkt-y sortiert (gleiches y: Objekt zuerst) → Ebene "ueber".
    Objekt-Sprites "<sheet>#<name>" aus assets/spiel/<sheet>.png + .json (Format sprites{name:{x,y,w,h,anker,frames,fps}}).
    Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json).
+   HEX-018: Licht (licht.js) nach den Objekten/Ebene ueber, vor Textblase, Debug und Abblende; Lichttakt aus der Spielzeit (steht in der Pause).
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
@@ -152,6 +153,7 @@
     k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
     karte = k; KB = k.pxBreite; KH = k.pxHoehe;
     S.interaktion.setzeKarte(k);
+    S.licht.setzeKarte(k);   // HEX-018: Lichtquellen aus den Kartenobjekten
     zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
     ausgangSperre = !!ausgangAn(zustand.figur);
     zustand.einstieg = einstieg;
@@ -189,6 +191,7 @@
         ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(e.o.x + e.o.fuss.x) - k.x, Math.round(e.o.y + e.o.fuss.y) - k.y, e.o.fuss.w, e.o.fuss.h);
       }
     });
+    S.licht.zeichne(ctx, k);   // HEX-018: Licht/Abdunklung in Kartenkoordinaten, um die Kamera verschoben
     S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
     if (S.karte.debug) zeichneDebug(k, t);
     if (zustand.blende > 0) { ctx.fillStyle = 'rgba(0,0,0,' + zustand.blende + ')'; ctx.fillRect(0, 0, BREITE, HOEHE); }   // HEX-017 Abblende
@@ -237,6 +240,7 @@
     if (!zustand.pausiert) {
       rest += dt;
       while (rest >= SCHRITT) { update(SCHRITT); rest -= SCHRITT; }
+      S.licht.tick(zustand.schritte * SCHRITT);   // HEX-018: 12-fps-Lichttakt aus der Spielzeit
     } else {
       rest = 0;
     }

@@ -32,6 +32,7 @@
    "x": 240,
    "y": 160,
    "sprite": "werkstatt-objekte#kuerbishaus",
+   "licht": { "dx": 0, "dy": -24, "rx": 84, "ry": 68, "intensity": 0.95 },
    "bild": [
     192,
     64,
@@ -64,6 +65,7 @@
    "x": 360,
    "y": 176,
    "sprite": "werkstatt-objekte#alchemietisch",
+   "licht": { "dx": 0, "dy": -16, "rx": 52, "ry": 44, "intensity": 0.85 },
    "bild": [
     336,
     144,
@@ -159,6 +161,7 @@
    "x": 152,
    "y": 176,
    "sprite": "werkstatt-objekte#laterne",
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
    "bild": [
     144,
     144,
@@ -178,6 +181,7 @@
    "x": 328,
    "y": 208,
    "sprite": "werkstatt-objekte#laterne",
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
    "bild": [
     320,
     176,
@@ -197,6 +201,7 @@
    "x": 264,
    "y": 272,
    "sprite": "werkstatt-objekte#laterne",
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
    "bild": [
     256,
     240,

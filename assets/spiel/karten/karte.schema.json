@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "title": "Spielkarte (HEX-012, erweitert HEX-015, HEX-017)",
+ "title": "Spielkarte (HEX-012, erweitert HEX-015, HEX-017, HEX-018)",
  "type": "object",
  "required": [
   "id",
@@ -121,6 +121,19 @@
      "gesperrt": {
       "type": "string",
       "description": "HEX-017: sichtbare Absperrung; id eines Standorts mit status gesperrt (js/spiel/standorte.js)"
+     },
+     "licht": {
+      "type": "object",
+      "description": "HEX-018: Lichtquelle am Objekt (js/spiel/licht.js). Lichtpunkt = (x + dx, y + dy) in Kartenpixeln, Ellipse rx/ry in Kartenpixeln, Stärke intensity 0..1. Alle Felder Pflicht, keine weiteren.",
+      "required": ["dx", "dy", "rx", "ry", "intensity"],
+      "additionalProperties": false,
+      "properties": {
+       "dx": { "type": "number" },
+       "dy": { "type": "number" },
+       "rx": { "type": "number", "exclusiveMinimum": 0 },
+       "ry": { "type": "number", "exclusiveMinimum": 0 },
+       "intensity": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
      }
     }
    }
@@ -289,5 +302,5 @@
    }
   }
  },
- "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort."
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1)."
 }

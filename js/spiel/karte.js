@@ -27,7 +27,7 @@
 
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
   var ST = window.Spiel.standorte;   // HEX-017: standorte.js lädt vor karte.js
-  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber'];
+  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'];   // HEX-018
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
     function istObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -60,6 +60,16 @@
       if ('ebene' in o && EBENEN.indexOf(o.ebene) < 0) fehler(wo + '.ebene muss "objekt" oder "ueber" sein (ist ' + JSON.stringify(o.ebene) + ')');
       // HEX-017: sichtbare Absperrung eines gesperrten Standorts
       if ('gesperrt' in o) { text(o.gesperrt, wo + '.gesperrt'); if (!ST.gesperrt(o.gesperrt)) fehler(wo + '.gesperrt "' + o.gesperrt + '" ist kein gesperrter Standort (standorte.js)'); }
+      // HEX-018 (F-020): Lichtquelle am Objekt, Werte aus den Daten (licht.js enthält keine Quellwerte)
+      if ('licht' in o) {
+        var lw = wo + '.licht', l = o.licht;
+        if (!istObj(l)) fehler(lw + ' muss ein Objekt {dx, dy, rx, ry, intensity} sein (ist ' + JSON.stringify(l) + ')');
+        Object.keys(l).forEach(function (f) { if (LICHT_FELDER.indexOf(f) < 0) fehler(lw + '.' + f + ' ist kein erlaubtes Feld (erlaubt: ' + LICHT_FELDER.join(', ') + ')'); });
+        LICHT_FELDER.forEach(function (f) { if (!(f in l)) fehler(lw + '.' + f + ' fehlt'); zahl(l[f], lw + '.' + f); });
+        if (l.rx <= 0) fehler(lw + '.rx muss > 0 sein (ist ' + l.rx + ')');
+        if (l.ry <= 0) fehler(lw + '.ry muss > 0 sein (ist ' + l.ry + ')');
+        if (l.intensity < 0 || l.intensity > 1) fehler(lw + '.intensity muss zwischen 0 und 1 liegen (ist ' + l.intensity + ')');
+      }
       if ('bild' in o) {
         if (!Array.isArray(o.bild) || o.bild.length !== 4) fehler(wo + '.bild muss eine Liste [x,y,w,h] sein');
         o.bild.forEach(function (v, j) { zahl(v, wo + '.bild[' + j + ']'); });
