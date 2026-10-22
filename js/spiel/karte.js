@@ -26,6 +26,7 @@
   function fussUeberlappung(x, y, blockiert, breite, hoehe, tile, fuesse) { return ueberlappung(fussRechteck(x, y), blockiert, breite, hoehe, tile, fuesse); }
 
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
+  var ST = window.Spiel.standorte;   // HEX-017: standorte.js lädt vor karte.js
   var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber'];
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
@@ -57,6 +58,8 @@
       if ('fuss' in o) rechteck(o.fuss, wo + '.fuss');
       // HEX-015: Zeichen-Ebene und Bildrechteck (nur Info, gezeichnet wird über sprite + anker)
       if ('ebene' in o && EBENEN.indexOf(o.ebene) < 0) fehler(wo + '.ebene muss "objekt" oder "ueber" sein (ist ' + JSON.stringify(o.ebene) + ')');
+      // HEX-017: sichtbare Absperrung eines gesperrten Standorts
+      if ('gesperrt' in o) { text(o.gesperrt, wo + '.gesperrt'); if (!ST.gesperrt(o.gesperrt)) fehler(wo + '.gesperrt "' + o.gesperrt + '" ist kein gesperrter Standort (standorte.js)'); }
       if ('bild' in o) {
         if (!Array.isArray(o.bild) || o.bild.length !== 4) fehler(wo + '.bild muss eine Liste [x,y,w,h] sein');
         o.bild.forEach(function (v, j) { zahl(v, wo + '.bild[' + j + ']'); });
@@ -74,6 +77,11 @@
       if ('satz' in z) text(z.satz, wo + '.satz');
       // F-017/F-018: aktion sprechen/sammeln braucht satz (kein stiller Rückfall auf z.text)
       if ((z.aktion === 'sprechen' || z.aktion === 'sammeln') && !('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "' + z.aktion + '")');
+      // HEX-017: aktion gesperrt braucht satz und ziel = gesperrter Standort
+      if (z.aktion === 'gesperrt') {
+        if (!('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "gesperrt")');
+        text(z.ziel, wo + '.ziel'); if (!ST.gesperrt(z.ziel)) fehler(wo + '.ziel "' + z.ziel + '" ist kein gesperrter Standort (standorte.js)');
+      }
       if ('platzhalter' in z && typeof z.platzhalter !== 'boolean') fehler(wo + '.platzhalter muss true oder false sein (ist ' + JSON.stringify(z.platzhalter) + ')');
     });
     liste(k.ausgaenge, 'ausgaenge').forEach(function (a, i) {
@@ -81,6 +89,11 @@
       if (!istObj(a)) fehler(wo + ' muss ein Objekt sein');
       rechteck(a.zone, wo + '.zone');
       text(a.ziel, wo + '.ziel'); text(a.einstieg, wo + '.einstieg');
+      // HEX-017: fremdes Ziel muss ein offener Standort sein (Datei/Einstieg prüft lade())
+      if (a.ziel !== k.id) {
+        if (!ST.gib(a.ziel)) fehler(wo + '.ziel "' + a.ziel + '" ist kein Standort (standorte.js)');
+        if (!ST.offen(a.ziel)) fehler(wo + '.ziel "' + a.ziel + '" ist gesperrt (standorte.js) – Ausgang nicht erlaubt');
+      }
     });
     var objFuesse = k.objekte.filter(function (o) { return o.fuss; }).map(function (o) { return { x: o.x + o.fuss.x, y: o.y + o.fuss.y, w: o.fuss.w, h: o.fuss.h }; });
     if (!istObj(k.einstiege)) fehler('einstiege fehlt oder ist kein Objekt');
@@ -97,6 +110,9 @@
       var tiefe = fussUeberlappung(e.x, e.y, function (tx, ty) { return k.kollision[ty].charAt(tx) === '1'; }, k.breite, k.hoehe, TILE, objFuesse);
       if (tiefe > 0) fehler(wo + ' (' + e.x + ',' + e.y + '): Fußbox ' + FUSS.w + '×' + FUSS.h + ' (x ' + fr.x + '–' + (fr.x + fr.w) + ', y ' + fr.y + '–' + (fr.y + fr.h) + ') überlappt Wand, Kartenrand oder Objekt-Fuß');
     });
+    // HEX-017: Karte eines Standorts hat alle in standorte.js genannten Einstiege
+    var st = ST.gib(k.id);
+    if (st) st.einstiege.forEach(function (n) { if (!Object.prototype.hasOwnProperty.call(k.einstiege, n)) fehler('einstiege.' + n + ' fehlt (laut standorte.js)'); });
     // Ausgang auf die eigene Karte muss einen vorhandenen Einstieg nennen (fremde Karten: HEX-017)
     k.ausgaenge.forEach(function (a, i) {
       if (a.ziel === k.id && !Object.prototype.hasOwnProperty.call(k.einstiege, a.einstieg)) fehler('ausgaenge[' + i + '].einstieg "' + a.einstieg + '" gibt es in dieser Karte nicht');
@@ -157,8 +173,26 @@
       var k;
       try { k = JSON.parse(t); } catch (e) { throw new Error(name + 'JSON-Syntaxfehler – ' + e.message); }
       pruefe(k, id);
-      return new Karte(k);
+      return pruefeZiele(k, name).then(function () { return new Karte(k); });
     });
+  }
+
+  // HEX-017: Zielkarte jedes fremden Ausgangs muss existieren und den Einstieg haben (nur lesen, nicht rekursiv prüfen)
+  function pruefeZiele(k, name) {
+    return Promise.all(k.ausgaenge.map(function (a, i) {
+      if (a.ziel === k.id) return null;
+      var wo = name + 'ausgaenge[' + i + '].ziel "' + a.ziel + '": ';
+      var p = fetch(PFAD + a.ziel + '.json', { cache: 'no-cache' }).then(function (r) {
+        if (!r.ok) return { fehlt: r.status };
+        return r.text().then(function (t) { try { return { k: JSON.parse(t) }; } catch (e) { return { syntax: true }; } });
+      }, function () { return { fehlt: 'Netz' }; });
+      return p.then(function (z) {
+        if (z.fehlt) throw new Error(wo + 'Zielkarte ' + PFAD + a.ziel + '.json nicht gefunden (' + z.fehlt + ')');
+        if (z.syntax) throw new Error(wo + 'Zielkarte hat JSON-Syntaxfehler');
+        var e = z.k && z.k.einstiege;
+        if (!e || typeof e !== 'object' || !Object.prototype.hasOwnProperty.call(e, a.einstieg)) throw new Error(name + 'ausgaenge[' + i + '].einstieg "' + a.einstieg + '" gibt es in Karte "' + a.ziel + '" nicht');
+      });
+    }));
   }
 
   window.Spiel = window.Spiel || {};

@@ -1,0 +1,149 @@
+{
+ "id": "waldpfad",
+ "breite": 30,
+ "hoehe": 20,
+ "tile": 16,
+ "boden": null,
+ "kollision": [
+  "111111111111111111111111111111",
+  "111111111111111111111111111111",
+  "111111100000000000000000000001",
+  "111111100000000000000000000001",
+  "111111100000000000000000000001",
+  "111111100000000000000000000001",
+  "111111100000000000000000000001",
+  "111111100000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000001",
+  "100000000000000000000000000000",
+  "100000000000000000000000000000",
+  "100000000000000000000000000001",
+  "111111000000000000000000000001",
+  "111111000000000000000000000001",
+  "111111000000000000000000000001",
+  "111111000000000000000000000001",
+  "111111111111111111111111111111",
+  "111111111111111111111111111111"
+ ],
+ "objekte": [
+  {
+   "typ": "baum",
+   "x": 184,
+   "y": 96,
+   "sprite": "werkstatt-objekte#baum_s",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 184,
+   "y": 64,
+   "sprite": "werkstatt-objekte#krone_s",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 312,
+   "y": 112,
+   "sprite": "werkstatt-objekte#baum_m",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 312,
+   "y": 80,
+   "sprite": "werkstatt-objekte#krone_m",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 232,
+   "y": 288,
+   "sprite": "werkstatt-objekte#baum_s",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 232,
+   "y": 256,
+   "sprite": "werkstatt-objekte#krone_s",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 392,
+   "y": 272,
+   "sprite": "werkstatt-objekte#baum_m",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 392,
+   "y": 240,
+   "sprite": "werkstatt-objekte#krone_m",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "busch",
+   "x": 136,
+   "y": 208,
+   "sprite": "werkstatt-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  }
+ ],
+ "interaktionen": [],
+ "ausgaenge": [
+  {
+   "zone": {
+    "x": 472,
+    "y": 176,
+    "w": 8,
+    "h": 32
+   },
+   "ziel": "werkstatt",
+   "einstieg": "von_waldpfad"
+  }
+ ],
+ "einstiege": {
+  "start": {
+   "x": 448,
+   "y": 200,
+   "richtung": "links"
+  },
+  "von_werkstatt": {
+   "x": 448,
+   "y": 200,
+   "richtung": "links"
+  }
+ }
+}

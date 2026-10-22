@@ -80,10 +80,12 @@
     });
   }
 
-  // Standard-Handler (satz aus der Karte, Pflicht laut karte.js, F-017/F-018):
+  // Standard-Handler (satz aus der Karte, Pflicht laut karte.js, F-017/F-018, HEX-017):
   // sprechen = Textblase; sammeln = Textblase, danach verschwindet die Zone
   registriereAktion('sprechen', function (z, a) { a.sage(z.daten.satz); });
   registriereAktion('sammeln', function (z, a) { a.sage(z.daten.satz); a.entferne(z); });
+  // HEX-017: gesperrt = Textblase (satz Pflicht, Ziel ist ein gesperrter Standort laut standorte.js)
+  registriereAktion('gesperrt', function (z, a) { a.sage(z.daten.satz); });
 
   S.interaktion = {
     registriere: registriere, registriereAktion: registriereAktion, setzeKarte: setzeKarte,

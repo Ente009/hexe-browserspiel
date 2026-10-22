@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "title": "Spielkarte (HEX-012, erweitert HEX-015)",
+ "title": "Spielkarte (HEX-012, erweitert HEX-015, HEX-017)",
  "type": "object",
  "required": [
   "id",
@@ -117,6 +117,10 @@
        "type": "number"
       },
       "description": "HEX-015: Bildrechteck [x,y,w,h] in Weltpixeln (Info/Prüfung; gezeichnet wird über sprite + anker)"
+     },
+     "gesperrt": {
+      "type": "string",
+      "description": "HEX-017: sichtbare Absperrung; id eines Standorts mit status gesperrt (js/spiel/standorte.js)"
      }
     }
    }
@@ -158,11 +162,15 @@
      },
      "satz": {
       "type": "string",
-      "description": "Satz in der Textblase; Pflicht bei aktion sprechen und sammeln (F-017/F-018)"
+      "description": "Satz in der Textblase; Pflicht bei aktion sprechen, sammeln und gesperrt (F-017/F-018, HEX-017)"
      },
      "platzhalter": {
       "type": "boolean",
       "description": "Nur Kennzeichen für Boss/Ente: Text ist Platzhalter; vom Code nicht ausgewertet"
+     },
+     "ziel": {
+      "type": "string",
+      "description": "HEX-017: bei aktion gesperrt Pflicht, id eines gesperrten Standorts (standorte.js)"
      }
     },
     "allOf": [
@@ -183,6 +191,24 @@
       "then": {
        "required": [
         "satz"
+       ]
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "aktion": {
+         "const": "gesperrt"
+        }
+       },
+       "required": [
+        "aktion"
+       ]
+      },
+      "then": {
+       "required": [
+        "satz",
+        "ziel"
        ]
       }
      }
@@ -224,7 +250,8 @@
       }
      },
      "ziel": {
-      "type": "string"
+      "type": "string",
+      "description": "Standort-id (standorte.js); fremdes Ziel muss status offen haben, die Datei assets/spiel/karten/<ziel>.json existieren und den einstieg enthalten (HEX-017)"
      },
      "einstieg": {
       "type": "string"
@@ -262,5 +289,5 @@
    }
   }
  },
- "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg."
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort."
 }

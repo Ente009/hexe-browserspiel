@@ -1,7 +1,8 @@
 /* HEX-011 Kern: rAF-Schleife mit fester Logik-Schrittweite (60 Hz) und dt-Begrenzung, Zustand, Pause, Zeichnen.
    HEX-015: Zeichnen Boden (Bild aus karte.boden) → Objekte + Hexe nach Fußpunkt-y sortiert (gleiches y: Objekt zuerst) → Ebene "ueber".
    Objekt-Sprites "<sheet>#<name>" aus assets/spiel/<sheet>.png + .json (Format sprites{name:{x,y,w,h,anker,frames,fps}}).
-   Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json). */
+   Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json).
+   HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
   var S = window.Spiel;
@@ -57,8 +58,13 @@
     pausiert: false,
     figur: S.hexeFigur.neu(0, 0),
     schritte: 0,
-    faktor: 1
+    faktor: 1,
+    wechsel: null,     // HEX-017: { ziel, einstieg, t, phase 'aus'|'ein' } während der Abblende
+    blende: 0,         // 0 = klar, 1 = schwarz
+    wechsel_anzahl: 0
   };
+  var BLENDE_MS = 150;            // je Richtung
+  var ausgangSperre = false;      // nach Ankunft: erst wieder auslösen, wenn die Fußbox keine Ausgangszone mehr berührt
 
   // ---------- Ganzzahlige Skalierung ----------
   // Faktor ganzzahlig in Gerätepixeln (devicePixelRatio), damit Handys hochkant nicht abschneiden.
@@ -85,11 +91,78 @@
   function update(dt) {
     if (!karte) return;
     var f = zustand.figur;
+    if (zustand.wechsel) { blendeSchritt(dt); eDruck = false; zustand.schritte++; return; }   // HEX-017: während der Abblende keine Bewegung
     S.hexeFigur.bewege(f, karte, S.eingabe.richtung(), dt);   // HEX-013: achsweise Kollision
+    pruefeAusgang(f);
     S.interaktion.aktualisiere(f, eDruck, dt);   // HEX-016: Hinweis in Reichweite, E einmal pro Druck
     eDruck = false;
     folgeKamera();
     zustand.schritte++;
+  }
+
+  // ---------- HEX-017 Standortwechsel ----------
+  function ausgangAn(f) {
+    var box = S.karte.fussRechteck(f.x, f.y);
+    for (var i = 0; i < karte.ausgaenge.length; i++) {
+      var z = karte.ausgaenge[i].zone;
+      if (box.x < z.x + z.w && z.x < box.x + box.w && box.y < z.y + z.h && z.y < box.y + box.h) return karte.ausgaenge[i];
+    }
+    return null;
+  }
+  function pruefeAusgang(f) {
+    var a = ausgangAn(f);
+    if (!a) { ausgangSperre = false; return; }
+    if (ausgangSperre) return;
+    // F-019: genau ein Versuch je Betreten der Zone – Sperre sofort setzen, gilt bei Erfolg und Fehler;
+    // frei erst, wenn die Fußbox keine Ausgangszone mehr berührt (betrete() setzt sie bei Ankunft neu)
+    ausgangSperre = true;
+    wechsleStandort(a.ziel, a.einstieg).catch(function () {});   // Fehler zeigt zeigeFehler() einmal
+  }
+  // Abblenden, Karte laden, Hexe auf Einstieg setzen, aufblenden. Promise<Karte>
+  function wechsleStandort(ziel, einstieg) {
+    if (zustand.wechsel) return Promise.reject(new Error('Wechsel läuft schon'));
+    var w = zustand.wechsel = { ziel: ziel, einstieg: einstieg, t: 0, phase: 'aus', karte: null, fertig: null };
+    var laden = S.karte.lade(ziel).then(function (k) { w.karte = k; return k; });
+    return new Promise(function (ok, nein) {
+      w.fertig = ok; w.nein = nein;
+      laden.catch(function (e) { zustand.wechsel = null; zustand.blende = 0; zeigeFehler(e); nein(e); });
+    });
+  }
+  function blendeSchritt(dt) {
+    var w = zustand.wechsel;
+    w.t += dt;
+    if (w.phase === 'aus') {
+      zustand.blende = Math.min(1, w.t / BLENDE_MS);
+      if (w.t >= BLENDE_MS && w.karte) {
+        try { betrete(w.karte, w.einstieg); } catch (e) { zustand.wechsel = null; zustand.blende = 0; zeigeFehler(e); w.nein(e); return; }
+        w.phase = 'ein'; w.t = 0;
+      }
+    } else {
+      zustand.blende = Math.max(0, 1 - w.t / BLENDE_MS);
+      if (w.t >= BLENDE_MS) { zustand.wechsel = null; zustand.blende = 0; w.fertig(karte); }
+    }
+  }
+  // Karte aktiv setzen und Hexe auf den Einstieg; nie in Kollision (dieselbe Regel wie Lader und Bewegung)
+  function betrete(k, einstieg) {
+    var e = k.einstiege[einstieg];
+    if (!e) throw new Error('Karte "' + k.id + '": einstiege.' + einstieg + ' fehlt');
+    var tiefe = k.fussUeberlappung(e.x, e.y);
+    if (tiefe > 0) throw new Error('Karte "' + k.id + '": einstiege.' + einstieg + ' (' + e.x + ',' + e.y + ') liegt in Kollision (' + tiefe + ' px²) – nicht gesetzt');
+    ladeBoden(k.daten.boden);
+    k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
+    karte = k; KB = k.pxBreite; KH = k.pxHoehe;
+    S.interaktion.setzeKarte(k);
+    zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
+    ausgangSperre = !!ausgangAn(zustand.figur);
+    zustand.einstieg = einstieg;
+    if (S.aktuelleKarte) zustand.wechsel_anzahl++;
+    folgeKamera();
+    S.aktuelleKarte = k;
+  }
+  function zeigeFehler(e) {
+    var el = document.getElementById('spiel-fehler');
+    el.textContent = e.message; el.hidden = false;
+    console.error(e.message);
   }
 
   // Kamera auf die Körpermitte der Figur (x/y ist der Fußpunkt)
@@ -118,6 +191,7 @@
     });
     S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
     if (S.karte.debug) zeichneDebug(k, t);
+    if (zustand.blende > 0) { ctx.fillStyle = 'rgba(0,0,0,' + zustand.blende + ')'; ctx.fillRect(0, 0, BREITE, HOEHE); }   // HEX-017 Abblende
   }
 
   // Platzhalter-Raster ohne Bodenbild: Boden Schachbrett, Wand-Tiles dunkler Stein, Kartenrand sichtbar
@@ -175,18 +249,6 @@
   requestAnimationFrame(takt);
   // HEX-016: Standard-Aktionen sprechen/sammeln stehen in interaktion.js (Satz aus der Karte).
 
-  S.karte.lade(START).then(function (k) {
-    ladeBoden(k.daten.boden);
-    k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
-    karte = k; KB = k.pxBreite; KH = k.pxHoehe;
-    S.interaktion.setzeKarte(k);
-    var e = k.einstiege.start;
-    zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
-    folgeKamera();
-    S.aktuelleKarte = k;
-  }, function (e) {
-    var el = document.getElementById('spiel-fehler');
-    el.textContent = e.message; el.hidden = false;
-    console.error(e.message);
-  });
+  S.wechsleStandort = wechsleStandort;   // HEX-017
+  S.karte.lade(START).then(function (k) { betrete(k, 'start'); }).catch(zeigeFehler);
 })();

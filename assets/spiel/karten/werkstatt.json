@@ -492,6 +492,8 @@
    "h": 32,
    "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "aktion": "gesperrt",
+   "ziel": "flussufer",
+   "satz": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "platzhalter": true
   },
   {
@@ -502,6 +504,8 @@
    "h": 32,
    "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "aktion": "gesperrt",
+   "ziel": "hoehle",
+   "satz": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "platzhalter": true
   },
   {
@@ -512,6 +516,8 @@
    "h": 32,
    "text": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "aktion": "gesperrt",
+   "ziel": "ruinen",
+   "satz": "[Platzhalter] Dieser Weg ist noch verschlossen.",
    "platzhalter": true
   }
  ],
