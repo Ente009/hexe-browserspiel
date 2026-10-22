@@ -72,6 +72,8 @@
       if ('text' in z) text(z.text, wo + '.text');
       if ('aktion' in z) text(z.aktion, wo + '.aktion');
       if ('satz' in z) text(z.satz, wo + '.satz');
+      // F-017/F-018: aktion sprechen/sammeln braucht satz (kein stiller Rückfall auf z.text)
+      if ((z.aktion === 'sprechen' || z.aktion === 'sammeln') && !('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "' + z.aktion + '")');
       if ('platzhalter' in z && typeof z.platzhalter !== 'boolean') fehler(wo + '.platzhalter muss true oder false sein (ist ' + JSON.stringify(z.platzhalter) + ')');
     });
     liste(k.ausgaenge, 'ausgaenge').forEach(function (a, i) {

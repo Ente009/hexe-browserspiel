@@ -86,6 +86,8 @@
     if (!karte) return;
     var f = zustand.figur;
     S.hexeFigur.bewege(f, karte, S.eingabe.richtung(), dt);   // HEX-013: achsweise Kollision
+    S.interaktion.aktualisiere(f, eDruck, dt);   // HEX-016: Hinweis in Reichweite, E einmal pro Druck
+    eDruck = false;
     folgeKamera();
     zustand.schritte++;
   }
@@ -114,6 +116,7 @@
         ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(e.o.x + e.o.fuss.x) - k.x, Math.round(e.o.y + e.o.fuss.y) - k.y, e.o.fuss.w, e.o.fuss.h);
       }
     });
+    S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
     if (S.karte.debug) zeichneDebug(k, t);
   }
 
@@ -141,6 +144,7 @@
     for (y = y0; y < y1; y++) for (x = x0; x < x1; x++) if (karte.tileBlockiert(x, y)) ctx.fillRect(x * t - k.x, y * t - k.y, t, t);
     ctx.fillStyle = 'rgba(255, 220, 0, 0.6)';
     karte.fuesse.forEach(function (f) { ctx.fillRect(Math.round(f.x) - k.x, Math.round(f.y) - k.y, f.w, f.h); });
+    S.interaktion.zeichneDebug(ctx, k);   // HEX-016: Interaktionszonen cyan
     ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
     for (x = x0; x <= x1; x++) ctx.fillRect(x * t - k.x, 0, 1, HOEHE);
     for (y = y0; y <= y1; y++) ctx.fillRect(0, y * t - k.y, BREITE, 1);
@@ -148,10 +152,11 @@
   }
 
   // ---------- Schleife ----------
-  var letzte = null, rest = 0;
+  var letzte = null, rest = 0, eDruck = false;
   function takt(jetzt) {
     if (S.eingabe.gedrueckt('pause')) setzePause(!zustand.pausiert);
     if (S.eingabe.gedrueckt('debug')) S.karte.debug = !S.karte.debug;
+    if (S.eingabe.gedrueckt('aktion') && !zustand.pausiert) eDruck = true;   // HEX-016: in der Pause verworfen
     if (letzte === null) letzte = jetzt;
     var dt = Math.min(DT_MAX, jetzt - letzte);
     letzte = jetzt;
@@ -168,10 +173,13 @@
   S.zustand = zustand;
   S.zeichenListe = zeichenListe;   // HEX-015: für Tests der y-Sortierung
   requestAnimationFrame(takt);
+  // HEX-016: Standard-Aktionen sprechen/sammeln stehen in interaktion.js (Satz aus der Karte).
+
   S.karte.lade(START).then(function (k) {
     ladeBoden(k.daten.boden);
     k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
     karte = k; KB = k.pxBreite; KH = k.pxHoehe;
+    S.interaktion.setzeKarte(k);
     var e = k.einstiege.start;
     zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
     folgeKamera();

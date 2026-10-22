@@ -158,13 +158,35 @@
      },
      "satz": {
       "type": "string",
-      "description": "HEX-015/016: Satz in der Textblase (aktion sprechen)"
+      "description": "Satz in der Textblase; Pflicht bei aktion sprechen und sammeln (F-017/F-018)"
      },
      "platzhalter": {
       "type": "boolean",
       "description": "Nur Kennzeichen für Boss/Ente: Text ist Platzhalter; vom Code nicht ausgewertet"
      }
-    }
+    },
+    "allOf": [
+     {
+      "if": {
+       "properties": {
+        "aktion": {
+         "enum": [
+          "sprechen",
+          "sammeln"
+         ]
+        }
+       },
+       "required": [
+        "aktion"
+       ]
+      },
+      "then": {
+       "required": [
+        "satz"
+       ]
+      }
+     }
+    ]
    },
    "description": "id muss innerhalb der Karte eindeutig sein"
   },

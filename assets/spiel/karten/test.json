@@ -50,9 +50,44 @@
     "w": 24,
     "h": 6
    }
+  },
+  {
+   "typ": "platzhalter",
+   "x": 536,
+   "y": 240,
+   "sprite": null,
+   "fuss": {
+    "x": -12,
+    "y": -12,
+    "w": 24,
+    "h": 12
+   }
   }
  ],
- "interaktionen": [],
+ "interaktionen": [
+  {
+   "id": "kuerbis",
+   "x": 520,
+   "y": 240,
+   "w": 32,
+   "h": 16,
+   "text": "Mit dem Kürbis sprechen",
+   "aktion": "sprechen",
+   "satz": "[Platzhalter] Willkommen in der Hexenwerkstatt!",
+   "platzhalter": true
+  },
+  {
+   "id": "sammeln_test",
+   "x": 240,
+   "y": 248,
+   "w": 16,
+   "h": 16,
+   "text": "Sammeln",
+   "aktion": "sammeln",
+   "satz": "[Platzhalter] Gesammelt",
+   "platzhalter": true
+  }
+ ],
  "ausgaenge": [],
  "einstiege": {
   "start": {
