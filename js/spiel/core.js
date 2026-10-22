@@ -3,6 +3,8 @@
    Objekt-Sprites "<sheet>#<name>" aus assets/spiel/<sheet>.png + .json (Format sprites{name:{x,y,w,h,anker,frames,fps}}).
    Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json).
    HEX-018: Licht (licht.js) nach den Objekten/Ebene ueber, vor Textblase, Debug und Abblende; Lichttakt aus der Spielzeit (steht in der Pause).
+   HEX-019a: optionale Deko (js/spiel/deko.js, HEX-019b) über Spiel.deko {init(karte), tick(spielzeitMs), zeichne(ctx, kamera), clear()};
+   nur wenn Spiel.einstellungen.animationen === true und die Funktion existiert; tick nicht in der Pause; zeichne nach Ebene ueber, vor Licht.
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
@@ -66,6 +68,15 @@
   };
   var BLENDE_MS = 150;            // je Richtung
   var ausgangSperre = false;      // nach Ankunft: erst wieder auslösen, wenn die Fußbox keine Ausgangszone mehr berührt
+
+  // ---------- HEX-019a Deko (optional) ----------
+  var dekoAus = false, dekoKarte = false;
+  function deko(name, a, b) {
+    if (dekoAus || !S.einstellungen || S.einstellungen.animationen !== true) return;
+    var d = S.deko;
+    if (!d || typeof d[name] !== 'function') return;
+    try { d[name](a, b); } catch (e) { dekoAus = true; console.error('HEX-019: Spiel.deko.' + name + ' fehlgeschlagen, Deko aus: ' + e.message); }
+  }
 
   // ---------- Ganzzahlige Skalierung ----------
   // Faktor ganzzahlig in Gerätepixeln (devicePixelRatio), damit Handys hochkant nicht abschneiden.
@@ -149,11 +160,13 @@
     if (!e) throw new Error('Karte "' + k.id + '": einstiege.' + einstieg + ' fehlt');
     var tiefe = k.fussUeberlappung(e.x, e.y);
     if (tiefe > 0) throw new Error('Karte "' + k.id + '": einstiege.' + einstieg + ' (' + e.x + ',' + e.y + ') liegt in Kollision (' + tiefe + ' px²) – nicht gesetzt');
+    if (dekoKarte) { deko('clear'); dekoKarte = false; }   // HEX-019a: vor dem Wechsel auf die neue Karte
     ladeBoden(k.daten.boden);
     k.objekte.forEach(function (o) { if (typeof o.sprite === 'string') ladeSheet(o.sprite.split('#')[0]); });
     karte = k; KB = k.pxBreite; KH = k.pxHoehe;
     S.interaktion.setzeKarte(k);
     S.licht.setzeKarte(k);   // HEX-018: Lichtquellen aus den Kartenobjekten
+    deko('init', k); dekoKarte = true;   // HEX-019a: nach licht.setzeKarte (liste() kennt die Quellen der Karte)
     zustand.figur = S.hexeFigur.neu(e.x, e.y, e.richtung);
     ausgangSperre = !!ausgangAn(zustand.figur);
     zustand.einstieg = einstieg;
@@ -191,6 +204,7 @@
         ctx.fillStyle = '#6b4a2a'; ctx.fillRect(Math.round(e.o.x + e.o.fuss.x) - k.x, Math.round(e.o.y + e.o.fuss.y) - k.y, e.o.fuss.w, e.o.fuss.h);
       }
     });
+    deko('zeichne', ctx, k);   // HEX-019a: Deko in Kartenkoordinaten, nach Ebene ueber, unter dem Licht
     S.licht.zeichne(ctx, k);   // HEX-018: Licht/Abdunklung in Kartenkoordinaten, um die Kamera verschoben
     S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
     if (S.karte.debug) zeichneDebug(k, t);
@@ -241,6 +255,7 @@
       rest += dt;
       while (rest >= SCHRITT) { update(SCHRITT); rest -= SCHRITT; }
       S.licht.tick(zustand.schritte * SCHRITT);   // HEX-018: 12-fps-Lichttakt aus der Spielzeit
+      deko('tick', zustand.schritte * SCHRITT);   // HEX-019a: Spielzeit in ms, nicht in der Pause
     } else {
       rest = 0;
     }

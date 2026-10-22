@@ -161,7 +161,7 @@
    "x": 152,
    "y": 176,
    "sprite": "werkstatt-objekte#laterne",
-   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85, "rest": 1 },
    "bild": [
     144,
     144,
@@ -181,7 +181,7 @@
    "x": 328,
    "y": 208,
    "sprite": "werkstatt-objekte#laterne",
-   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85, "rest": 1 },
    "bild": [
     320,
     176,
@@ -201,7 +201,7 @@
    "x": 264,
    "y": 272,
    "sprite": "werkstatt-objekte#laterne",
-   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85 },
+   "licht": { "dx": 0, "dy": -24, "rx": 44, "ry": 40, "intensity": 0.85, "rest": 1 },
    "bild": [
     256,
     240,
@@ -549,5 +549,6 @@
    "y": 200,
    "richtung": "rechts"
   }
- }
+ },
+ "deko": { "katze": { "x": 176, "y": 176, "w": 32, "h": 32 }, "dampf": [{ "x": 400, "y": 170 }], "blaetter": true }
 }

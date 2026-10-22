@@ -27,7 +27,8 @@
 
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
   var ST = window.Spiel.standorte;   // HEX-017: standorte.js lädt vor karte.js
-  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'];   // HEX-018
+  var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'], LICHT_OPTIONAL = ['rest'];   // HEX-018, F-021 b
+  var DEKO_FELDER = ['katze', 'dampf', 'blaetter'], KATZE_FELDER = ['x', 'y', 'w', 'h'], DAMPF_FELDER = ['x', 'y'];   // F-021 a
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
     function istObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -64,11 +65,13 @@
       if ('licht' in o) {
         var lw = wo + '.licht', l = o.licht;
         if (!istObj(l)) fehler(lw + ' muss ein Objekt {dx, dy, rx, ry, intensity} sein (ist ' + JSON.stringify(l) + ')');
-        Object.keys(l).forEach(function (f) { if (LICHT_FELDER.indexOf(f) < 0) fehler(lw + '.' + f + ' ist kein erlaubtes Feld (erlaubt: ' + LICHT_FELDER.join(', ') + ')'); });
+        Object.keys(l).forEach(function (f) { if (LICHT_FELDER.indexOf(f) < 0 && LICHT_OPTIONAL.indexOf(f) < 0) fehler(lw + '.' + f + ' ist kein erlaubtes Feld (erlaubt: ' + LICHT_FELDER.concat(LICHT_OPTIONAL).join(', ') + ')'); });
         LICHT_FELDER.forEach(function (f) { if (!(f in l)) fehler(lw + '.' + f + ' fehlt'); zahl(l[f], lw + '.' + f); });
         if (l.rx <= 0) fehler(lw + '.rx muss > 0 sein (ist ' + l.rx + ')');
         if (l.ry <= 0) fehler(lw + '.ry muss > 0 sein (ist ' + l.ry + ')');
         if (l.intensity < 0 || l.intensity > 1) fehler(lw + '.intensity muss zwischen 0 und 1 liegen (ist ' + l.intensity + ')');
+        // F-021 b: optionaler Ruhewert (Ruhebild und Regel 2 in licht.js), Standard 1
+        if ('rest' in l) { zahl(l.rest, lw + '.rest'); if (l.rest < 0 || l.rest > 1) fehler(lw + '.rest muss zwischen 0 und 1 liegen (ist ' + l.rest + ')'); }
       }
       if ('bild' in o) {
         if (!Array.isArray(o.bild) || o.bild.length !== 4) fehler(wo + '.bild muss eine Liste [x,y,w,h] sein');
@@ -120,6 +123,33 @@
       var tiefe = fussUeberlappung(e.x, e.y, function (tx, ty) { return k.kollision[ty].charAt(tx) === '1'; }, k.breite, k.hoehe, TILE, objFuesse);
       if (tiefe > 0) fehler(wo + ' (' + e.x + ',' + e.y + '): Fußbox ' + FUSS.w + '×' + FUSS.h + ' (x ' + fr.x + '–' + (fr.x + fr.w) + ', y ' + fr.y + '–' + (fr.y + fr.h) + ') überlappt Wand, Kartenrand oder Objekt-Fuß');
     });
+    // F-021 a: optionale Deko-Daten für js/spiel/deko.js (HEX-019b), Kartenpixel, ganze Zahlen >= 0 innerhalb der Karte
+    if ('deko' in k) {
+      var dk = k.deko;
+      if (!istObj(dk)) fehler('deko muss ein Objekt {katze, dampf, blaetter} sein (ist ' + JSON.stringify(dk) + ')');
+      var nur = function (o, erlaubt, wo) { Object.keys(o).forEach(function (f) { if (erlaubt.indexOf(f) < 0) fehler(wo + '.' + f + ' ist kein erlaubtes Feld (erlaubt: ' + erlaubt.join(', ') + ')'); }); };
+      var px = function (v, wo) { if (typeof v !== 'number' || v % 1 !== 0 || v < 0) fehler(wo + ' muss ganze Zahl >= 0 sein (ist ' + JSON.stringify(v) + ')'); };
+      nur(dk, DEKO_FELDER, 'deko');
+      if ('katze' in dk) {
+        var kz = dk.katze;
+        if (!istObj(kz)) fehler('deko.katze muss ein Objekt {x,y,w,h} sein (ist ' + JSON.stringify(kz) + ')');
+        nur(kz, KATZE_FELDER, 'deko.katze');
+        KATZE_FELDER.forEach(function (f) { if (!(f in kz)) fehler('deko.katze.' + f + ' fehlt'); px(kz[f], 'deko.katze.' + f); });
+        if (kz.w <= 0 || kz.h <= 0) fehler('deko.katze.w/h müssen > 0 sein (ist ' + kz.w + '×' + kz.h + ')');
+        if (kz.x + kz.w > B || kz.y + kz.h > H) fehler('deko.katze (' + kz.x + ',' + kz.y + ',' + kz.w + '×' + kz.h + ') liegt nicht ganz in der Karte (' + B + '×' + H + ')');
+      }
+      if ('dampf' in dk) {
+        if (!Array.isArray(dk.dampf)) fehler('deko.dampf muss eine Liste [{x,y}] sein (ist ' + JSON.stringify(dk.dampf) + ')');
+        dk.dampf.forEach(function (d, i) {
+          var wo = 'deko.dampf[' + i + ']';
+          if (!istObj(d)) fehler(wo + ' muss ein Objekt {x,y} sein');
+          nur(d, DAMPF_FELDER, wo);
+          DAMPF_FELDER.forEach(function (f) { if (!(f in d)) fehler(wo + '.' + f + ' fehlt'); px(d[f], wo + '.' + f); });
+          if (d.x >= B || d.y >= H) fehler(wo + ' (' + d.x + ',' + d.y + ') liegt außerhalb der Karte (0–' + (B - 1) + ', 0–' + (H - 1) + ')');
+        });
+      }
+      if ('blaetter' in dk && typeof dk.blaetter !== 'boolean') fehler('deko.blaetter muss true oder false sein (ist ' + JSON.stringify(dk.blaetter) + ')');
+    }
     // HEX-017: Karte eines Standorts hat alle in standorte.js genannten Einstiege
     var st = ST.gib(k.id);
     if (st) st.einstiege.forEach(function (n) { if (!Object.prototype.hasOwnProperty.call(k.einstiege, n)) fehler('einstiege.' + n + ' fehlt (laut standorte.js)'); });

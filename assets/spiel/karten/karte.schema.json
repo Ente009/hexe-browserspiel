@@ -124,15 +124,41 @@
      },
      "licht": {
       "type": "object",
-      "description": "HEX-018: Lichtquelle am Objekt (js/spiel/licht.js). Lichtpunkt = (x + dx, y + dy) in Kartenpixeln, Ellipse rx/ry in Kartenpixeln, Stärke intensity 0..1. Alle Felder Pflicht, keine weiteren.",
-      "required": ["dx", "dy", "rx", "ry", "intensity"],
+      "description": "HEX-018: Lichtquelle am Objekt (js/spiel/licht.js). Lichtpunkt = (x + dx, y + dy) in Kartenpixeln, Ellipse rx/ry in Kartenpixeln, Stärke intensity 0..1. dx, dy, rx, ry, intensity Pflicht; rest optional (0..1, Standard 1, F-021 b); keine weiteren.",
+      "required": [
+       "dx",
+       "dy",
+       "rx",
+       "ry",
+       "intensity"
+      ],
       "additionalProperties": false,
       "properties": {
-       "dx": { "type": "number" },
-       "dy": { "type": "number" },
-       "rx": { "type": "number", "exclusiveMinimum": 0 },
-       "ry": { "type": "number", "exclusiveMinimum": 0 },
-       "intensity": { "type": "number", "minimum": 0, "maximum": 1 }
+       "dx": {
+        "type": "number"
+       },
+       "dy": {
+        "type": "number"
+       },
+       "rx": {
+        "type": "number",
+        "exclusiveMinimum": 0
+       },
+       "ry": {
+        "type": "number",
+        "exclusiveMinimum": 0
+       },
+       "intensity": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+       },
+       "rest": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "F-021 b: optionaler Ruhewert (Ruhebild, Regel 2), Standard 1"
+       }
       }
      }
     }
@@ -300,7 +326,69 @@
      }
     }
    }
+  },
+  "deko": {
+   "type": "object",
+   "description": "F-021 a: optionale Deko-Daten für js/spiel/deko.js (HEX-019b). Kartenpixel, ganze Zahlen >= 0 innerhalb der Karte; alle Unterfelder optional, keine weiteren.",
+   "additionalProperties": false,
+   "properties": {
+    "katze": {
+     "type": "object",
+     "description": "Katzenplatz-Rechteck, ganz in der Karte, w/h > 0",
+     "required": [
+      "x",
+      "y",
+      "w",
+      "h"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "x": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "y": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "w": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "h": {
+       "type": "integer",
+       "minimum": 1
+      }
+     }
+    },
+    "dampf": {
+     "type": "array",
+     "description": "Dampf-Quellpunkte innerhalb der Karte",
+     "items": {
+      "type": "object",
+      "required": [
+       "x",
+       "y"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "x": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "y": {
+        "type": "integer",
+        "minimum": 0
+       }
+      }
+     }
+    },
+    "blaetter": {
+     "type": "boolean",
+     "description": "Blätter auf dieser Karte an/aus"
+    }
+   }
   }
  },
- "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1)."
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1). F-021: objekte[].licht.rest optional 0..1; deko optional {katze {x,y,w,h}, dampf [{x,y}], blaetter bool}, ganze Zahlen >= 0, katze ganz in der Karte, dampf-Punkte in der Karte."
 }

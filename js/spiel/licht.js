@@ -16,12 +16,13 @@
  * das zuletzt berechnete Bild bleibt stehen. Ohne veränderliche Werte (kein flicker, kein set()) wird nichts neu gemalt.
  *
  * Quellen der Karte (F-020: Werte aus den Daten, nicht aus dem Code): jedes Objekt in karte.objekte mit Feld
- * licht { dx, dy, rx, ry, intensity } ist eine Quelle; Lichtpunkt = (x + dx, y + dy), Ellipse rx/ry, alles in Kartenpixeln.
+ * licht { dx, dy, rx, ry, intensity, rest? } (F-021 b: rest 0..1, Standard 1 = Ruhewert für Ruhebild und Regel 2) ist eine Quelle; Lichtpunkt = (x + dx, y + dy), Ellipse rx/ry, alles in Kartenpixeln.
  * Geprüft wird das Feld in karte.js (Schema karte.schema.json). Karten ohne licht-Objekte (test, waldpfad) bekommen
  * keine Lichtebene → Bild unverändert. Hier stehen nur Prinzip-Konstanten (Zelle, Takt, Stufen, Abdunklung, Palette).
  *
  * Schnittstelle (z. B. für HEX-019 Laternenflackern):
  *   Spiel.licht.liste()            -> [{id, typ, x, y}]   ids der Kartenquellen: '<typ>-<n>' (laterne-0, laterne-1, …)
+ *   Spiel.licht.getRest(id)        -> Ruhewert der Quelle (licht.rest, Standard 1) oder null bei unbekannter id (F-021 b)
  *   Spiel.licht.set(id, v)         v 0..1, Helligkeit einer Quelle (z. B. im selben Takt wie die Flamme); Farbgrenze bleibt
  *   Spiel.licht.add({ id, x, y, radius | rx, ry, intensity, rest })   x, y, Radien in Kartenpixeln; Farbe immer warm
  *   Spiel.licht.remove(id)
@@ -81,7 +82,7 @@
       if (!l) return;
       var i = n[o.typ] = (n[o.typ] || 0);
       n[o.typ]++;
-      add({ id: o.typ + '-' + i, typ: o.typ, x: o.x + l.dx, y: o.y + l.dy, rx: l.rx, ry: l.ry, intensity: l.intensity });
+      add({ id: o.typ + '-' + i, typ: o.typ, x: o.x + l.dx, y: o.y + l.dy, rx: l.rx, ry: l.ry, intensity: l.intensity, rest: l.rest });   // F-021 b: rest aus den Daten (fehlt → 1)
     });
     level = new Uint8Array(GW * GH);
     dirty = true; rechne(true);
@@ -149,7 +150,11 @@
     ctx.restore();
   }
 
+  // F-021 b: Ruhewert einer Quelle (für deko.js), null bei unbekannter id
+  function getRest(id) { for (var i = 0; i < lights.length; i++) if (lights[i].id === String(id)) return lights[i].rest; return null; }
+
   S.licht = {
+    getRest: getRest,
     add: function (cfg) { var id = add(cfg); return id; }, set: set, remove: function (id) { remove(id); },
     liste: function () { return lights.map(function (L) { return { id: L.id, typ: L.typ, x: L.x, y: L.y }; }); },
     an: function (b) { aktiv = !!b; }, stats: stats,
