@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "title": "Spielkarte (HEX-012, erweitert HEX-015, HEX-017, HEX-018)",
+ "title": "Spielkarte (HEX-012, erweitert HEX-015, HEX-017, HEX-018, HEX-021)",
  "type": "object",
  "required": [
   "id",
@@ -386,9 +386,34 @@
     "blaetter": {
      "type": "boolean",
      "description": "Blätter auf dieser Karte an/aus"
+    },
+    "nebel": {
+     "type": "object",
+     "description": "HEX-021: Nebel auf dieser Karte (js/spiel/deko.js). dichte = größte Deckkraft, farbe = #rrggbb, hoehe = Höhe der Nebelschwaden in Kartenpixeln (1..Kartenhöhe, Obergrenze prüft karte.js). Alle Pflicht, keine weiteren.",
+     "required": [
+      "dichte",
+      "farbe",
+      "hoehe"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "dichte": {
+       "type": "number",
+       "exclusiveMinimum": 0,
+       "maximum": 1
+      },
+      "farbe": {
+       "type": "string",
+       "pattern": "^#[0-9a-fA-F]{6}$"
+      },
+      "hoehe": {
+       "type": "integer",
+       "minimum": 1
+      }
+     }
     }
    }
   }
  },
- "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1). F-021: objekte[].licht.rest optional 0..1; deko optional {katze {x,y,w,h}, dampf [{x,y}], blaetter bool}, ganze Zahlen >= 0, katze ganz in der Karte, dampf-Punkte in der Karte."
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1). F-021: objekte[].licht.rest optional 0..1; deko optional {katze {x,y,w,h}, dampf [{x,y}], blaetter bool}, ganze Zahlen >= 0, katze ganz in der Karte, dampf-Punkte in der Karte. HEX-021: deko.nebel optional {dichte Zahl >0..1, farbe \"#rrggbb\", hoehe ganze Zahl 1..hoehe*tile}, alle Pflicht, keine weiteren."
 }

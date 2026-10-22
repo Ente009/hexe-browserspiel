@@ -28,7 +28,8 @@
   // Prüft das Format vollständig nach karte.schema.json (F-009); wirft Error „Karte "<id>": …“
   var ST = window.Spiel.standorte;   // HEX-017: standorte.js lädt vor karte.js
   var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'], LICHT_OPTIONAL = ['rest'];   // HEX-018, F-021 b
-  var DEKO_FELDER = ['katze', 'dampf', 'blaetter'], KATZE_FELDER = ['x', 'y', 'w', 'h'], DAMPF_FELDER = ['x', 'y'];   // F-021 a
+  var DEKO_FELDER = ['katze', 'dampf', 'blaetter', 'nebel'], KATZE_FELDER = ['x', 'y', 'w', 'h'], DAMPF_FELDER = ['x', 'y'];   // F-021 a
+  var NEBEL_FELDER = ['dichte', 'farbe', 'hoehe'];   // HEX-021
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
     function istObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -126,7 +127,7 @@
     // F-021 a: optionale Deko-Daten für js/spiel/deko.js (HEX-019b), Kartenpixel, ganze Zahlen >= 0 innerhalb der Karte
     if ('deko' in k) {
       var dk = k.deko;
-      if (!istObj(dk)) fehler('deko muss ein Objekt {katze, dampf, blaetter} sein (ist ' + JSON.stringify(dk) + ')');
+      if (!istObj(dk)) fehler('deko muss ein Objekt {katze, dampf, blaetter, nebel} sein (ist ' + JSON.stringify(dk) + ')');
       var nur = function (o, erlaubt, wo) { Object.keys(o).forEach(function (f) { if (erlaubt.indexOf(f) < 0) fehler(wo + '.' + f + ' ist kein erlaubtes Feld (erlaubt: ' + erlaubt.join(', ') + ')'); }); };
       var px = function (v, wo) { if (typeof v !== 'number' || v % 1 !== 0 || v < 0) fehler(wo + ' muss ganze Zahl >= 0 sein (ist ' + JSON.stringify(v) + ')'); };
       nur(dk, DEKO_FELDER, 'deko');
@@ -149,6 +150,16 @@
         });
       }
       if ('blaetter' in dk && typeof dk.blaetter !== 'boolean') fehler('deko.blaetter muss true oder false sein (ist ' + JSON.stringify(dk.blaetter) + ')');
+      // HEX-021: deko.nebel {dichte 0<..1, farbe "#rrggbb", hoehe ganze Zahl 1..Kartenhöhe px} (Format Craft „Format deko.nebel (HP, fest)“)
+      if ('nebel' in dk) {
+        var nb = dk.nebel;
+        if (!istObj(nb)) fehler('deko.nebel muss ein Objekt {dichte, farbe, hoehe} sein (ist ' + JSON.stringify(nb) + ')');
+        nur(nb, NEBEL_FELDER, 'deko.nebel');
+        NEBEL_FELDER.forEach(function (f) { if (!(f in nb)) fehler('deko.nebel.' + f + ' fehlt'); });
+        if (typeof nb.dichte !== 'number' || !(nb.dichte > 0 && nb.dichte <= 1)) fehler('deko.nebel.dichte muss Zahl > 0 und <= 1 sein (ist ' + JSON.stringify(nb.dichte) + ')');
+        if (typeof nb.farbe !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(nb.farbe)) fehler('deko.nebel.farbe muss "#rrggbb" sein (ist ' + JSON.stringify(nb.farbe) + ')');
+        if (typeof nb.hoehe !== 'number' || nb.hoehe % 1 !== 0 || nb.hoehe < 1 || nb.hoehe > H) fehler('deko.nebel.hoehe muss ganze Zahl 1–' + H + ' sein (ist ' + JSON.stringify(nb.hoehe) + ')');
+      }
     }
     // HEX-017: Karte eines Standorts hat alle in standorte.js genannten Einstiege
     var st = ST.gib(k.id);

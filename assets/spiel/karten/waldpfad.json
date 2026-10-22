@@ -145,5 +145,13 @@
    "y": 200,
    "richtung": "links"
   }
+ },
+ "deko": {
+  "blaetter": true,
+  "nebel": {
+   "dichte": 0.35,
+   "farbe": "#c8d2d8",
+   "hoehe": 48
+  }
  }
 }

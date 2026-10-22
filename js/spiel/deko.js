@@ -151,7 +151,48 @@
     clear: function () { this.aktiv = false; this.platz = null; this.schritt = -1; }
   };
 
-  var TEILE = [Laternen, Blaetter, Dampf, Katze];
+  // ---------- Nebel (HEX-021) ----------
+  // deko.nebel = { dichte >0..1, farbe "#rrggbb", hoehe ganze Zahl 1..Kartenhöhe } (Format HP, fest). Ungültig/fehlt → nichts.
+  // Bodennebel am unteren Kartenrand, hoehe px hoch. Zwei harte Stufen (unten dichter), Oberkante in 4-px-Säulen gestuft,
+  // zwei Lagen treiben gegenläufig langsam seitlich (4 fps, je 1 px → 4 px/s bzw. 2 px/s). Keine Verläufe, Deckkraft je Stufe konstant.
+  var NEBEL_FPS = 4, NEBEL_SAEULE = 4, NEBEL_HUB = [0, 2, 3, 2, 0, -2, -1, 1, 3, 1, -1, -3, -2, 0, 2, 1];   // Oberkanten-Muster (Säulen)
+  var Nebel = {
+    aktiv: false, d: 0, c: '', h: 0, b: 0, kh: 0, schritt: -1, start: -1,
+    init: function (karte) {
+      var n = dekoDaten(karte).nebel, kh = karte && karte.pxHoehe;
+      this.aktiv = !!(n && typeof n === 'object' && zahl(n.dichte) && n.dichte > 0 && n.dichte <= 1 &&
+        typeof n.farbe === 'string' && /^#[0-9a-fA-F]{6}$/.test(n.farbe) &&
+        zahl(n.hoehe) && Math.floor(n.hoehe) === n.hoehe && n.hoehe >= 1 && zahl(kh) && n.hoehe <= kh);
+      this.d = this.aktiv ? n.dichte : 0; this.c = this.aktiv ? n.farbe : ''; this.h = this.aktiv ? n.hoehe : 0;
+      this.b = this.aktiv ? karte.pxBreite : 0; this.kh = this.aktiv ? kh : 0; this.schritt = -1; this.start = -1;
+    },
+    tick: function (ms) {
+      if (!this.aktiv) return;
+      var s = Math.floor(ms / 1000 * NEBEL_FPS);
+      if (this.start < 0) this.start = s;
+      this.schritt = s - this.start;               // Pause: Spielzeit steht → Stand eingefroren
+    },
+    lage: function (ctx, k, versatz, hoeheLage, alpha) {
+      if (hoeheLage < 1) return;
+      ctx.globalAlpha = alpha; ctx.fillStyle = this.c;
+      var x0 = Math.max(0, Math.floor(k.x / NEBEL_SAEULE) * NEBEL_SAEULE), x1 = Math.min(this.b, k.x + ctx.canvas.width + NEBEL_SAEULE);
+      for (var x = x0; x < x1; x += NEBEL_SAEULE) {
+        var i = Math.floor((x + versatz) / NEBEL_SAEULE), hub = NEBEL_HUB[((i % 16) + 16) % 16];
+        var hh = Math.max(1, Math.min(this.h, hoeheLage + hub)), y = this.kh - hh;
+        ctx.fillRect(Math.round(x) - k.x, Math.round(y) - k.y, NEBEL_SAEULE, hh);
+      }
+    },
+    zeichne: function (ctx, k) {
+      if (!this.aktiv || this.schritt < 0) return;
+      var a = this.d / 2;                          // zwei Lagen à dichte/2: unten (Überlappung) ≈ dichte, oben dünner
+      this.lage(ctx, k, this.schritt, Math.round(this.h * 0.9), a);              // obere, breite Lage treibt nach links
+      this.lage(ctx, k, -Math.floor(this.schritt / 2) + 32, Math.round(this.h * 0.5), a);   // untere, dichte Lage langsamer nach rechts
+      ctx.globalAlpha = 1;
+    },
+    clear: function () { this.aktiv = false; this.schritt = -1; this.start = -1; }
+  };
+
+  var TEILE = [Laternen, Blaetter, Dampf, Katze, Nebel];
   S.deko = {
     init: function (karte) { for (var i = 0; i < TEILE.length; i++) TEILE[i].init(karte); },
     tick: function (ms) { for (var i = 0; i < TEILE.length; i++) TEILE[i].tick(ms); },
@@ -162,6 +203,6 @@
     },
     sprites: function () { var s = Katze.sprite(); return s ? [s] : []; },   // HEX-019c: [{x, y_fuss, zeichne(ctx, kamera)}]
     clear: function () { for (var i = 0; i < TEILE.length; i++) TEILE[i].clear(); },
-    _teile: { laternen: Laternen, blaetter: Blaetter, dampf: Dampf, katze: Katze }   // nur für Tests
+    _teile: { laternen: Laternen, blaetter: Blaetter, dampf: Dampf, katze: Katze, nebel: Nebel }   // nur für Tests
   };
 })();
