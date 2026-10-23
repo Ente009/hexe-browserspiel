@@ -30,6 +30,7 @@
   var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'], LICHT_OPTIONAL = ['rest'];   // HEX-018, F-021 b
   var DEKO_FELDER = ['katze', 'dampf', 'blaetter', 'nebel'], KATZE_FELDER = ['x', 'y', 'w', 'h'], DAMPF_FELDER = ['x', 'y'];   // F-021 a
   var NEBEL_FELDER = ['dichte', 'farbe', 'hoehe'];   // HEX-021
+  var DEKO_RECHTECKE = ['katze'];   // F-024: Deko-Teile mit Rechteck {x,y,w,h}; gleichnamige Interaktionszone muss genau dieses Rechteck sein
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
     function istObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -170,6 +171,12 @@
         if (typeof nb.hoehe !== 'number' || nb.hoehe % 1 !== 0 || nb.hoehe < 1 || nb.hoehe > H) fehler('deko.nebel.hoehe muss ganze Zahl 1–' + H + ' sein (ist ' + JSON.stringify(nb.hoehe) + ')');
       }
     }
+    // F-024 (HEX-023): Zone mit derselben id wie ein Deko-Rechteck (z. B. interaktionen "katze" ↔ deko.katze) muss genau dessen x, y, w, h haben
+    if (istObj(k.deko)) k.interaktionen.forEach(function (z, i) {
+      if (DEKO_RECHTECKE.indexOf(z.id) < 0 || !(z.id in k.deko)) return;
+      var d = k.deko[z.id];
+      if (z.x !== d.x || z.y !== d.y || z.w !== d.w || z.h !== d.h) fehler('interaktionen[' + i + '] "' + z.id + '" (' + z.x + ',' + z.y + ',' + z.w + '×' + z.h + ') passt nicht zu deko.' + z.id + ' (' + d.x + ',' + d.y + ',' + d.w + '×' + d.h + ') – Zone muss genau das Rechteck aus deko.' + z.id + ' sein');
+    });
     // HEX-017: Karte eines Standorts hat alle in standorte.js genannten Einstiege
     var st = ST.gib(k.id);
     if (st) st.einstiege.forEach(function (n) { if (!Object.prototype.hasOwnProperty.call(k.einstiege, n)) fehler('einstiege.' + n + ' fehlt (laut standorte.js)'); });

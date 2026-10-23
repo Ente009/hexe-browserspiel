@@ -494,6 +494,16 @@
    ]
   },
   {
+   "id": "katze",
+   "x": 176,
+   "y": 176,
+   "w": 32,
+   "h": 32,
+   "text": "Mit der Katze sprechen",
+   "aktion": "sprechen",
+   "satz": "Miau. … Das hieß: Futter."
+  },
+  {
    "id": "sperre_fluss",
    "x": 416,
    "y": 208,

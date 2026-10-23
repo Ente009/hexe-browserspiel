@@ -9,7 +9,7 @@
 
   var nachId = {}, nachAktion = {};
   var zonen = [], aktiv = null, blase = null, zeit = 0;
-  var zaehler = { ausgeloest: 0 };
+  var zaehler = { ausgeloest: 0, reagiere: 0 };
 
   function ueberlappt(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
 
@@ -42,10 +42,24 @@
     entferne: function (z) { z.aus = true; if (aktiv === z) aktiv = null; }
   };
 
+  // HEX-023: Reaktions-Hook für deko.js (Schnittstelle „Katzen-Reaktion“, HP, fest; Craft-Karte HEX-023):
+  // Nach jedem ausgelösten sprechen (ein Aufruf je E-Druck, nach dem Handler, also nach dem Satz) ruft
+  // interaktion.js Spiel.deko.reagiere(zonenId) auf – nur wenn Spiel.einstellungen.animationen === true
+  // und Spiel.deko.reagiere eine Funktion ist. Fehlt sie: nichts, kein Fehler. Wirft sie: eine Konsolen-Fehlermeldung,
+  // der Satz bleibt. Rückgabewert egal. In der Pause gibt es kein E (core verwirft es), also keinen Aufruf.
+  function meldeDeko(z) {
+    if (z.aktion !== 'sprechen' || !S.einstellungen || S.einstellungen.animationen !== true) return;
+    var d = S.deko;
+    if (!d || typeof d.reagiere !== 'function') return;
+    zaehler.reagiere++;
+    try { d.reagiere(z.id); } catch (e) { console.error('HEX-023: Spiel.deko.reagiere("' + z.id + '") fehlgeschlagen: ' + e.message); }
+  }
+
   function loese(z) {
     var fn = nachId[z.id] || nachAktion[z.aktion];
     zaehler.ausgeloest++;
     if (fn) fn(z, api); else console.warn('Interaktion ohne Handler: ' + z.id);
+    meldeDeko(z);
   }
 
   // Je Logikschritt: Reichweite prüfen; e = E in diesem Schritt neu gedrückt
