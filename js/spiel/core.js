@@ -6,6 +6,9 @@
    HEX-019a: optionale Deko (js/spiel/deko.js, HEX-019b) über Spiel.deko {init(karte), tick(spielzeitMs), zeichne(ctx, kamera), clear()};
    nur wenn Spiel.einstellungen.animationen === true und die Funktion existiert; tick nicht in der Pause; zeichne nach Ebene ueber, vor Licht.
    HEX-019c: zusätzlich optional Spiel.deko.sprites() → [{x, y_fuss, zeichne(ctx, kamera)}] in der y-Sortierung (nur bei animationen true).
+   HEX-023b: bei animationen !== true statt dessen optional Spiel.deko.spritesStatisch(karte) → gleiches Format, ein fester Frame
+   (jedes Bild, auch in der Pause, in derselben y-Sortierung). Fehlt = still (nichts gezeichnet, wie vorher); wirft = 1 console.error,
+   statische Deko danach aus. init/tick/zeichne/clear/sprites/reagiere bei „aus“ weiterhin nie (Nebel, Dampf, Blätter bleiben weg).
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
@@ -74,16 +77,28 @@
 
   // ---------- HEX-019a Deko (optional) ----------
   var dekoAus = false, dekoKarte = false;
-  function dekoFehler(name, e) { dekoAus = true; console.error('HEX-019: Spiel.deko.' + name + ' fehlgeschlagen, Deko aus: ' + e.message); }
+  function dekoFehler(name, e) { dekoAus = true; console.error('HEX-019: Spiel.deko.' + name + ' fehlgeschlagen, Deko aus: ' + (e && e.message ? e.message : String(e))); }   // F-026: auch throw null
   function deko(name, a, b) {
     if (dekoAus || !S.einstellungen || S.einstellungen.animationen !== true) return;
     var d = S.deko;
     if (!d || typeof d[name] !== 'function') return;
     try { return d[name](a, b); } catch (e) { dekoFehler(name, e); }
   }
+  // HEX-023b: statische Deko bei Animationen aus (fester Frame, ohne init/tick); eigener Schalter, 1 Fehler genügt
+  var statischAus = false;
+  function statischFehler(name, e) { statischAus = true; console.error('HEX-023b: Spiel.deko.' + name + ' fehlgeschlagen, statische Deko aus: ' + (e && e.message ? e.message : String(e))); }   // F-026
+  function dekoStatisch() {
+    if (statischAus || !karte || !S.einstellungen || S.einstellungen.animationen === true) return;
+    var d = S.deko;
+    if (!d || typeof d.spritesStatisch !== 'function') return;
+    try { return d.spritesStatisch(karte); } catch (e) { statischFehler('spritesStatisch', e); }
+  }
   // HEX-019c: optionale Sprites für die y-Sortierung; nur gültige Einträge (y_fuss Zahl, zeichne Funktion)
+  // HEX-023b: bei animationen !== true kommen sie aus spritesStatisch(karte), sonst aus sprites() (unverändert)
+  var listeStatisch = false;   // HEX-023b: Herkunft der Deko-Sprites dieses Bildes (für die Fehlermeldung beim Zeichnen)
   function dekoSprites() {
-    var l = deko('sprites');
+    listeStatisch = !S.einstellungen || S.einstellungen.animationen !== true;
+    var l = listeStatisch ? dekoStatisch() : deko('sprites');
     if (!Array.isArray(l)) return [];
     return l.filter(function (d) { return d && isFinite(d.y_fuss) && typeof d.zeichne === 'function'; });
   }
@@ -205,6 +220,7 @@
     var zeit = zustand.schritte / 60;   // Spielzeit in s, steht in der Pause
     zeichenListe(karte.objekte, zustand.figur, dekoSprites()).forEach(function (e) {
       if (e.hexe) { S.hexeFigur.zeichne(ctx, e.o, k); return; }
+      if (e.deko && listeStatisch) { if (!statischAus) { try { e.o.zeichne(ctx, k); } catch (err) { statischFehler('spritesStatisch().zeichne', err); } } return; }   // HEX-023b
       if (e.deko) { if (!dekoAus) { try { e.o.zeichne(ctx, k); } catch (err) { dekoFehler('sprites().zeichne', err); } } return; }
       var sp = spriteVon(e.o);
       if (sp) {

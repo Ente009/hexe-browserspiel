@@ -18,6 +18,12 @@
  * HEX-023 Katzen-Reaktion (Craft HEX-023, Block „Schnittstelle Katzen-Reaktion (HP, fest)“):
  *   Spiel.deko.reagiere(id)         von interaktion.js 1× je E auf einer sprechen-Zone, vor deko.tick desselben Bildes.
  *             Nur id === "katze" zählt, alles andere: nichts. Wirft nie. Siehe Teil Katze unten.
+ * HEX-023b Statische Deko bei Animationen aus (Craft Block 9035b5a5 „Schnittstelle statische Deko (HP, fest)“):
+ *   Spiel.deko.spritesStatisch(karte) core ruft sie nur bei animationen !== true, jedes Bild (auch Pause/Blende).
+ *             Reine Funktion: liest nur karte.daten.deko.katze, kein Zustand, kein init/tick, kein Zufall, kein Spiel.licht, keine Zeit.
+ *             Mit gültiger deko.katze genau 1 Eintrag [{x, y_fuss, zeichne(ctx, kamera)}], sonst []. Wirft nie.
+ *             Bild = Ruhebild der Katze wie beim Start mit Animationen an: sitzend, Blick rechts, Schwanz-Frame 0 (Idle f = 0),
+ *             x = round(katze.x + katze.w / 2), y_fuss = katze.y + katze.h. Gleiche Zeichenfunktion wie die animierte Katze.
  * Laternen: keine eigenen Ruhe-/Fallbackwerte. Ruhe stellt licht.setzeKarte beim Karteneintritt her; getRest wird hier nicht gebraucht.
  * Alles deterministisch aus der Spielzeit (eigener Zufall mit festem Startwert je Karteneintritt), keine Uhrzeit.
  * Farben aus der Palette von Karte/Objekten (HEX-015), harte Pixel (fillRect ganzzahlig). */
@@ -126,21 +132,49 @@
   // F-025: Dauer aus Phasen und FPS abgeleitet statt fest 75: 10 Phasen × 60/8 Schritte = 75 Schritte = 1,25 s.
   // Math.ceil, damit auch bei FPS, die 60 nicht teilen, die letzte Phase ihre volle Zeit bekommt (hier exakt 75).
   var REAKTION_PHASEN = REAKTION.length, REAKTION_SCHRITTE = Math.ceil(REAKTION_PHASEN * SPIELSCHRITTE_JE_S / REAKTION_FPS);
+  // Platz aus der Karte (gemeinsam für init und spritesStatisch, HEX-023b): gültig nur mit endlichen Zahlen und w, h > 0
+  function katzePlatz(karte) {
+    var p = dekoDaten(karte).katze;
+    if (!(p && zahl(p.x) && zahl(p.y) && zahl(p.w) && zahl(p.h) && p.w > 0 && p.h > 0)) return null;
+    return { x0: p.x, x1: p.x + p.w, y: p.y + p.h, mitte: Math.round(p.x + p.w / 2) };
+  }
+  // Katzenbild als reine Zeichenfunktion (HEX-023b): alles aus den Argumenten, kein Zustand.
+  // b = Blick (1 rechts, -1 links), laeuft = Laufpose, f = Frame-Bit (0/1), rPhase = Reaktionsphase (-1 = keine)
+  function katzeBild(ctx, k, x, y, b, laeuft, f, rPhase) {
+    var c = PAL.nacht;
+    function r(dx, dy, w, h, col) { px(ctx, k, b > 0 ? x + dx : x - dx - w, y + dy, w, h, col || c); }
+    if (laeuft) {
+      r(-5, -6, 9, 4); r(3, -9, 4, 4); r(3, -10, 1, 1); r(6, -10, 1, 1); r(5, -8, 1, 1, PAL.gelb);   // Körper, Kopf, Ohren, Auge
+      r(-4, -2, 1, 2 - f); r(-2, -2, 1, 1 + f); r(1, -2, 1, 2 - f); r(3, -2, 1, 1 + f);              // Beine im Wechsel
+      r(-7, -8 + f, 2, 1); r(-6, -7 + f, 1, 1);                                                      // Schwanz
+    } else if (rPhase >= 0) {                      // HEX-023: Reaktion (sitzend), Phase aus tick
+      var R = REAKTION[rPhase], u = R.kopf;
+      r(-3, -7, 6, 7); r(-2, -11 - u, 5, 4); r(-2, -12 - u, 1, 1); r(2, -12 - u, 1, 1);             // Körper, Kopf gehoben, Ohren
+      if (u) r(-1, -7 - u, 3, u);                                                                    // Hals füllt die Lücke
+      if (!R.zu) { r(-1, -10 - u, 1, 1, PAL.gelb); r(1, -10 - u, 1, 1, PAL.gelb); }                  // Augen (zu = nur nacht)
+      if (R.schwanz === 0) { r(-6, -1, 3, 1); r(-6, -3, 1, 2); }                                     // Idle-Lage (wie f = 0)
+      else { r(-5, -1, 2, 1); r(-5, -8, 1, 7); if (R.schwanz === 2) r(-6, -9, 1, 1); else r(-5, -9, 1, 1); }   // aufgestellt, Spitze wippt
+    } else {
+      r(-3, -7, 6, 7); r(-2, -11, 5, 4); r(-2, -12, 1, 1); r(2, -12, 1, 1);                         // sitzend: Körper, Kopf, Ohren
+      r(-1, -10, 1, 1, PAL.gelb); r(1, -10, 1, 1, PAL.gelb);                                       // Augen
+      if (f) { r(-6, -2, 3, 1); r(-7, -4, 1, 2); } else { r(-6, -1, 3, 1); r(-6, -3, 1, 2); }        // Schwanz wippt (Idle)
+    }
+  }
   var Katze = {
     aktiv: false, platz: null, schritt: -1, x: 0, ziel: 0, blick: 1, pause: 0, frame: 0, zufall: null,
     anfrage: false, rStart: -1, rPhase: -1,      // HEX-023: Reaktion (rStart = Spielschritt des Starts, -1 = keine)
     reagiere: function () { if (this.aktiv) this.anfrage = true; },
     init: function (karte) {
       this.anfrage = false; this.rStart = -1; this.rPhase = -1;
-      var p = dekoDaten(karte).katze;
-      this.aktiv = !!(p && zahl(p.x) && zahl(p.y) && zahl(p.w) && zahl(p.h) && p.w > 0 && p.h > 0);
-      this.platz = this.aktiv ? { x0: p.x, x1: p.x + p.w, y: p.y + p.h } : null;
+      var q = katzePlatz(karte);
+      this.aktiv = !!q;
+      this.platz = q ? { x0: q.x0, x1: q.x1, y: q.y } : null;
       this.zufall = rng(1911); this.schritt = -1; this.blick = 1; this.pause = 12; this.frame = 0;
-      this.x = this.aktiv ? Math.round(p.x + p.w / 2) : 0; this.ziel = this.x;
+      this.x = q ? q.mitte : 0; this.ziel = this.x;
     },
     tick: function (ms) {
       if (!this.aktiv) return;
-      var jetzt = Math.round(ms * 60 / 1000);   // Spielschritt (wie Laternen), ganzzahlig → keine Rundungsabweichung
+      var jetzt = Math.round(ms * SPIELSCHRITTE_JE_S / 1000);   // Spielschritt (wie Laternen), ganzzahlig → keine Rundungsabweichung
       if (this.rStart >= 0 && jetzt - this.rStart >= REAKTION_SCHRITTE) { this.rStart = -1; this.rPhase = -1; this.pause = Math.max(this.pause, REAKTION_RUHE); }
       if (this.anfrage) { this.anfrage = false; if (this.rStart < 0) { this.rStart = jetzt; this.ziel = this.x; } }   // läuft schon eine → ignoriert
       if (this.rStart >= 0) this.rPhase = Math.min(REAKTION_PHASEN - 1, Math.floor((jetzt - this.rStart) * REAKTION_FPS / SPIELSCHRITTE_JE_S));
@@ -159,24 +193,7 @@
     zeichne: function () {},                       // HEX-019c: Katze nur noch über sprites() (y-sortiert von core)
     zeichneKatze: function (ctx, k) {
       if (!this.aktiv) return;
-      var b = this.blick, x = this.x, y = this.platz.y, laeuft = this.x !== this.ziel, f = this.frame % 2, c = PAL.nacht;
-      function r(dx, dy, w, h, col) { px(ctx, k, b > 0 ? x + dx : x - dx - w, y + dy, w, h, col || c); }
-      if (laeuft) {
-        r(-5, -6, 9, 4); r(3, -9, 4, 4); r(3, -10, 1, 1); r(6, -10, 1, 1); r(5, -8, 1, 1, PAL.gelb);   // Körper, Kopf, Ohren, Auge
-        r(-4, -2, 1, 2 - f); r(-2, -2, 1, 1 + f); r(1, -2, 1, 2 - f); r(3, -2, 1, 1 + f);              // Beine im Wechsel
-        r(-7, -8 + f, 2, 1); r(-6, -7 + f, 1, 1);                                                      // Schwanz
-      } else if (this.rPhase >= 0) {               // HEX-023: Reaktion (sitzend), Phase aus tick
-        var R = REAKTION[this.rPhase], u = R.kopf;
-        r(-3, -7, 6, 7); r(-2, -11 - u, 5, 4); r(-2, -12 - u, 1, 1); r(2, -12 - u, 1, 1);             // Körper, Kopf gehoben, Ohren
-        if (u) r(-1, -7 - u, 3, u);                                                                    // Hals füllt die Lücke
-        if (!R.zu) { r(-1, -10 - u, 1, 1, PAL.gelb); r(1, -10 - u, 1, 1, PAL.gelb); }                  // Augen (zu = nur nacht)
-        if (R.schwanz === 0) { r(-6, -1, 3, 1); r(-6, -3, 1, 2); }                                     // Idle-Lage (wie f = 0)
-        else { r(-5, -1, 2, 1); r(-5, -8, 1, 7); if (R.schwanz === 2) r(-6, -9, 1, 1); else r(-5, -9, 1, 1); }   // aufgestellt, Spitze wippt
-      } else {
-        r(-3, -7, 6, 7); r(-2, -11, 5, 4); r(-2, -12, 1, 1); r(2, -12, 1, 1);                         // sitzend: Körper, Kopf, Ohren
-        r(-1, -10, 1, 1, PAL.gelb); r(1, -10, 1, 1, PAL.gelb);                                       // Augen
-        if (f) { r(-6, -2, 3, 1); r(-7, -4, 1, 2); } else { r(-6, -1, 3, 1); r(-6, -3, 1, 2); }        // Schwanz wippt (Idle)
-      }
+      katzeBild(ctx, k, this.x, this.platz.y, this.blick, this.x !== this.ziel, this.frame % 2, this.rPhase);
     },
     sprite: function () {
       if (!this.aktiv) return null;
@@ -245,6 +262,17 @@
       try { if (id === 'katze' && S.einstellungen && S.einstellungen.animationen === true) Katze.reagiere(); } catch (e) { /* nie werfen (Schnittstelle) */ }
     },
     clear: function () { for (var i = 0; i < TEILE.length; i++) TEILE[i].clear(); },
+    // HEX-023b: statische Katze bei Animationen aus (Schnittstelle 9035b5a5). Rein: nur aus karte, Werte beim Aufruf festgehalten.
+    // Frame = Ruhebild wie beim Start mit an (sitzend, Blick rechts, Schwanz-Frame 0). Ohne gültige deko.katze []. Wirft nie.
+    spritesStatisch: function (karte) {
+      try {
+        var q = katzePlatz(karte);
+        if (!q) return [];
+        var x = q.mitte, y = q.y;
+        if (!isFinite(x) || !isFinite(y)) return [];   // z. B. y + h läuft über → kein gültiger Eintrag
+        return [{ x: x, y_fuss: y, zeichne: function (ctx, k) { katzeBild(ctx, k, x, y, 1, false, 0, -1); } }];
+      } catch (e) { return []; }   // z. B. Getter in karte wirft → still nichts (Schnittstelle: nie werfen)
+    },
     _teile: { laternen: Laternen, blaetter: Blaetter, dampf: Dampf, katze: Katze, nebel: Nebel }   // nur für Tests
   };
 })();
