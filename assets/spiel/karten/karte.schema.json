@@ -203,6 +203,12 @@
       "type": "string",
       "description": "Satz in der Textblase; Pflicht bei aktion sprechen, sammeln und gesperrt (F-017/F-018, HEX-017)"
      },
+     "saetze": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "description": "HEX-022: Satzliste für aktion sprechen statt satz (nicht beides): E zeigt den nächsten Satz, E nach dem letzten schließt die Blase"
+     },
      "platzhalter": {
       "type": "boolean",
       "description": "Nur Kennzeichen für Boss/Ente: Text ist Platzhalter; vom Code nicht ausgewertet"
@@ -217,10 +223,7 @@
       "if": {
        "properties": {
         "aktion": {
-         "enum": [
-          "sprechen",
-          "sammeln"
-         ]
+         "const": "sammeln"
         }
        },
        "required": [
@@ -232,6 +235,28 @@
         "satz"
        ]
       }
+     },
+     {
+      "if": {
+       "properties": {
+        "aktion": {
+         "const": "sprechen"
+        }
+       },
+       "required": [
+        "aktion"
+       ]
+      },
+      "then": {
+       "oneOf": [
+        { "required": ["satz"], "not": { "required": ["saetze"] } },
+        { "required": ["saetze"], "not": { "required": ["satz"] } }
+       ]
+      }
+     },
+     {
+      "if": { "required": ["saetze"] },
+      "then": { "required": ["aktion"], "properties": { "aktion": { "const": "sprechen" } } }
      },
      {
       "if": {
@@ -415,5 +440,5 @@
    }
   }
  },
- "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1). F-021: objekte[].licht.rest optional 0..1; deko optional {katze {x,y,w,h}, dampf [{x,y}], blaetter bool}, ganze Zahlen >= 0, katze ganz in der Karte, dampf-Punkte in der Karte. HEX-021: deko.nebel optional {dichte Zahl >0..1, farbe \"#rrggbb\", hoehe ganze Zahl 1..hoehe*tile}, alle Pflicht, keine weiteren."
+ "description": "Wird vollständig von js/spiel/karte.js pruefe() durchgesetzt. Zusätzlich (nicht als JSON-Schema ausdrückbar): kollision hat genau hoehe Zeilen à breite Zeichen; id = Dateiname; jeder Einstieg liegt innerhalb der Karte und nicht in einer Wand. Interaktions-ids eindeutig; ausgaenge mit ziel = eigene id brauchen einen vorhandenen einstieg. HEX-017: Ausgänge auf fremde Karten: ziel = offener Standort aus standorte.js, Zielkarte vorhanden, einstieg dort vorhanden; Karte eines Standorts hat alle dort genannten Einstiege; objekte[].gesperrt und interaktionen[].ziel (aktion gesperrt) = gesperrter Standort. HEX-018: objekte[].licht genau mit dx, dy, rx, ry, intensity (Zahlen, rx/ry > 0, intensity 0..1). F-021: objekte[].licht.rest optional 0..1; deko optional {katze {x,y,w,h}, dampf [{x,y}], blaetter bool}, ganze Zahlen >= 0, katze ganz in der Karte, dampf-Punkte in der Karte. HEX-022: interaktionen[].saetze optional nur bei aktion sprechen, nicht zusammen mit satz, nicht leer, nur nicht leere Texte. HEX-021: deko.nebel optional {dichte Zahl >0..1, farbe \"#rrggbb\", hoehe ganze Zahl 1..hoehe*tile}, alle Pflicht, keine weiteren."
 }

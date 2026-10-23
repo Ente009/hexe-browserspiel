@@ -38,6 +38,7 @@
 
   var api = {
     sage: function (text, ms) { blase = { text: String(text), bis: zeit + (ms || BLASE_MS) }; },
+    schliesse: function () { blase = null; },
     entferne: function (z) { z.aus = true; if (aktiv === z) aktiv = null; }
   };
 
@@ -82,7 +83,16 @@
 
   // Standard-Handler (satz aus der Karte, Pflicht laut karte.js, F-017/F-018, HEX-017):
   // sprechen = Textblase; sammeln = Textblase, danach verschwindet die Zone
-  registriereAktion('sprechen', function (z, a) { a.sage(z.daten.satz); });
+  // HEX-022: sprechen mit saetze (Liste, laut karte.js nicht leer): 1. E = Satz 1, jedes weitere E = nächster Satz,
+  // E nach dem letzten schließt die Blase. Ist die Blase abgelaufen oder zeigt sie etwas anderes, beginnt es wieder bei Satz 1.
+  // Ohne saetze unverändert: satz.
+  registriereAktion('sprechen', function (z, a) {
+    var L = z.daten.saetze;
+    if (!L) { a.sage(z.daten.satz); return; }
+    var weiter = blase && blase.zone === z ? blase.nr + 1 : 0;
+    if (weiter >= L.length) { a.schliesse(); return; }
+    a.sage(L[weiter]); blase.zone = z; blase.nr = weiter;
+  });
   registriereAktion('sammeln', function (z, a) { a.sage(z.daten.satz); a.entferne(z); });
   // HEX-017: gesperrt = Textblase (satz Pflicht, Ziel ist ein gesperrter Standort laut standorte.js)
   registriereAktion('gesperrt', function (z, a) { a.sage(z.daten.satz); });
@@ -91,6 +101,6 @@
     registriere: registriere, registriereAktion: registriereAktion, setzeKarte: setzeKarte,
     aktualisiere: aktualisiere, zeichne: zeichne, zeichneDebug: zeichneDebug, finde: finde,
     hinweisText: hinweisText,
-    get aktiv() { return aktiv; }, get blase() { return blase && blase.text; }, get zonen() { return zonen; }, zaehler: zaehler
+    get aktiv() { return aktiv; }, get blase() { return blase && blase.text; }, get satzNr() { return blase && blase.zone ? blase.nr : null; }, get zonen() { return zonen; }, zaehler: zaehler
   };
 })();

@@ -90,7 +90,16 @@
       if ('aktion' in z) text(z.aktion, wo + '.aktion');
       if ('satz' in z) text(z.satz, wo + '.satz');
       // F-017/F-018: aktion sprechen/sammeln braucht satz (kein stiller Rückfall auf z.text)
-      if ((z.aktion === 'sprechen' || z.aktion === 'sammeln') && !('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "' + z.aktion + '")');
+      // HEX-022: saetze = nicht leere Liste nicht leerer Texte, nur bei aktion sprechen, nicht zusammen mit satz
+      if ('saetze' in z) {
+        if (z.aktion !== 'sprechen') fehler(wo + '.saetze nur bei aktion "sprechen" erlaubt');
+        if (!Array.isArray(z.saetze)) fehler(wo + '.saetze muss eine Liste von Texten sein (ist ' + JSON.stringify(z.saetze) + ')');
+        if (z.saetze.length === 0) fehler(wo + '.saetze darf nicht leer sein');
+        z.saetze.forEach(function (t, j) { text(t, wo + '.saetze[' + j + ']'); if (t.trim() === '') fehler(wo + '.saetze[' + j + '] darf nicht leer sein'); });
+        if ('satz' in z) fehler(wo + ': satz und saetze nicht beide angeben');
+      }
+      if (z.aktion === 'sprechen' && !('satz' in z) && !('saetze' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "sprechen")');
+      if (z.aktion === 'sammeln' && !('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "sammeln")');
       // HEX-017: aktion gesperrt braucht satz und ziel = gesperrter Standort
       if (z.aktion === 'gesperrt') {
         if (!('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "gesperrt")');

@@ -486,8 +486,12 @@
    "h": 16,
    "text": "Mit dem Kürbis sprechen",
    "aktion": "sprechen",
-   "satz": "[Platzhalter] Willkommen in der Hexenwerkstatt!",
-   "platzhalter": true
+   "saetze": [
+    "Huhu! Ich bin nur ein Kürbis, aber ich höre alles.",
+    "Der Kessel blubbert seit Dienstag. Ich frag lieber nicht.",
+    "Die Katze tut, als ob sie schläft. Sie schläft nie.",
+    "Im Wald wachsen Kräuter. Mir bitte keine, ich bin satt."
+   ]
   },
   {
    "id": "sperre_fluss",
