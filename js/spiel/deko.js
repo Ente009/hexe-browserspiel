@@ -38,6 +38,9 @@
   function zahl(v) { return typeof v === 'number' && isFinite(v); }
   function px(ctx, k, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x) - k.x, Math.round(y) - k.y, w, h); }
 
+  // Spielzeit-Raster (gemeinsam für Laternen und Katze, HEX-033): 1 Spielschritt = 1/60 s wie core.js (SCHRITT = 1000 / 60)
+  var SPIELSCHRITTE_JE_S = 60;
+
   // ---------- Laternen ----------
   var LATERNE_FPS = 6, LATERNE_FRAMES = 3, HELL = [0.80, 1.00, 0.55];
   var Laternen = {
@@ -47,8 +50,8 @@
       this.frame = -1;
     },
     tick: function (ms) {
-      // gleiche Rechnung wie core.js (zeit = schritte / 60): Schritte aus ms zurückgewinnen, sonst Rundungsabweichung an Frame-Grenzen
-      var schritte = Math.round(ms * 60 / 1000), f = Math.floor(schritte / 60 * LATERNE_FPS) % LATERNE_FRAMES;
+      // gleiche Rechnung wie core.js (zeit = schritte / SPIELSCHRITTE_JE_S): Schritte aus ms zurückgewinnen, sonst Rundungsabweichung an Frame-Grenzen
+      var schritte = Math.round(ms * SPIELSCHRITTE_JE_S / 1000), f = Math.floor(schritte / SPIELSCHRITTE_JE_S * LATERNE_FPS) % LATERNE_FRAMES;
       if (f === this.frame) return;
       this.frame = f;
       for (var i = 0; i < this.ids.length; i++) S.licht.set(this.ids[i], HELL[f]);
@@ -123,7 +126,7 @@
   // E während laufender Reaktion: IGNORIEREN (deterministisch). Reihenfolge im tick: erst Ende prüfen (Spielzeit ≥ Start + 1,25 s
   // → Reaktion vorbei), dann Anfrage: läuft noch eine Reaktion → Anfrage verworfen, sonst Start. Kein Neustart, kein Nachholen.
   // Nur Farben nacht/gelb wie die Katze bisher, harte Pixel.
-  var KATZE_FPS = 4, REAKTION_FPS = 8, REAKTION_RUHE = 12, SPIELSCHRITTE_JE_S = 60;   // Spielzeit-Raster wie in tick: 1 Schritt = 1/60 s
+  var KATZE_FPS = 4, REAKTION_FPS = 8, REAKTION_RUHE = 12;   // Spielzeit-Raster SPIELSCHRITTE_JE_S steht oben (HEX-033)
   // je Phase: Kopfhub in px, Schwanz (0 = Idle-Lage, 1 = aufgestellt, 2 = aufgestellt + Spitze links), Augen zu
   var REAKTION = [
     { kopf: 1, schwanz: 0, zu: false }, { kopf: 2, schwanz: 1, zu: false }, { kopf: 2, schwanz: 2, zu: false }, { kopf: 2, schwanz: 1, zu: false },
