@@ -6,7 +6,7 @@
   'use strict';
   var LISTE = {
     werkstatt: { name: 'Hexenwerkstatt', status: 'offen', einstiege: ['start', 'von_waldpfad'] },
-    waldpfad:  { name: 'Waldpfad', status: 'offen', platzhalter: true, einstiege: ['start', 'von_werkstatt'] },
+    waldpfad:  { name: 'Waldpfad', status: 'offen', einstiege: ['start', 'von_werkstatt'] },
     flussufer: { name: 'Flussufer', status: 'gesperrt', einstiege: [] },
     hoehle:    { name: 'Höhle', status: 'gesperrt', einstiege: [] },
     ruinen:    { name: 'Ruinen', status: 'gesperrt', einstiege: [] }

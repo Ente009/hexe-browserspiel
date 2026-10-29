@@ -3,7 +3,7 @@
  "breite": 30,
  "hoehe": 20,
  "tile": 16,
- "boden": null,
+ "boden": "assets/spiel/waldpfad-boden.png",
  "kollision": [
   "111111111111111111111111111111",
   "111111111111111111111111111111",
@@ -29,9 +29,9 @@
  "objekte": [
   {
    "typ": "baum",
-   "x": 184,
-   "y": 96,
-   "sprite": "werkstatt-objekte#baum_s",
+   "x": 136,
+   "y": 56,
+   "sprite": "waldpfad-objekte#baum_a",
    "ebene": "objekt",
    "fuss": {
     "x": -14,
@@ -42,16 +42,96 @@
   },
   {
    "typ": "baumkrone",
-   "x": 184,
+   "x": 136,
+   "y": 24,
+   "sprite": "waldpfad-objekte#krone_a",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 200,
+   "y": 48,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 200,
+   "y": 16,
+   "sprite": "waldpfad-objekte#krone_b",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 264,
+   "y": 60,
+   "sprite": "waldpfad-objekte#baum_c",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -12,
+    "y": -6,
+    "w": 24,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 264,
+   "y": 28,
+   "sprite": "waldpfad-objekte#krone_c",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 332,
+   "y": 52,
+   "sprite": "waldpfad-objekte#baum_a",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 332,
+   "y": 20,
+   "sprite": "waldpfad-objekte#krone_a",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 392,
+   "y": 56,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 392,
+   "y": 24,
+   "sprite": "waldpfad-objekte#krone_b",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 448,
    "y": 64,
-   "sprite": "werkstatt-objekte#krone_s",
-   "ebene": "ueber"
-  },
-  {
-   "typ": "baum",
-   "x": 312,
-   "y": 112,
-   "sprite": "werkstatt-objekte#baum_m",
+   "sprite": "waldpfad-objekte#baum_a",
    "ebene": "objekt",
    "fuss": {
     "x": -14,
@@ -62,16 +142,36 @@
   },
   {
    "typ": "baumkrone",
-   "x": 312,
-   "y": 80,
-   "sprite": "werkstatt-objekte#krone_m",
+   "x": 448,
+   "y": 32,
+   "sprite": "waldpfad-objekte#krone_a",
    "ebene": "ueber"
   },
   {
    "typ": "baum",
-   "x": 232,
-   "y": 288,
-   "sprite": "werkstatt-objekte#baum_s",
+   "x": 168,
+   "y": 120,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 168,
+   "y": 88,
+   "sprite": "waldpfad-objekte#krone_b",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 300,
+   "y": 128,
+   "sprite": "waldpfad-objekte#baum_a",
    "ebene": "objekt",
    "fuss": {
     "x": -14,
@@ -82,16 +182,76 @@
   },
   {
    "typ": "baumkrone",
-   "x": 232,
-   "y": 256,
-   "sprite": "werkstatt-objekte#krone_s",
+   "x": 300,
+   "y": 96,
+   "sprite": "waldpfad-objekte#krone_a",
    "ebene": "ueber"
   },
   {
    "typ": "baum",
-   "x": 392,
+   "x": 360,
+   "y": 104,
+   "sprite": "waldpfad-objekte#baum_c",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -12,
+    "y": -6,
+    "w": 24,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 360,
+   "y": 72,
+   "sprite": "waldpfad-objekte#krone_c",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 96,
+   "y": 128,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 96,
+   "y": 96,
+   "sprite": "waldpfad-objekte#krone_b",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 112,
+   "y": 304,
+   "sprite": "waldpfad-objekte#baum_c",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -12,
+    "y": -6,
+    "w": 24,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 112,
    "y": 272,
-   "sprite": "werkstatt-objekte#baum_m",
+   "sprite": "waldpfad-objekte#krone_c",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 256,
+   "y": 304,
+   "sprite": "waldpfad-objekte#baum_a",
    "ebene": "objekt",
    "fuss": {
     "x": -14,
@@ -102,16 +262,76 @@
   },
   {
    "typ": "baumkrone",
-   "x": 392,
-   "y": 240,
-   "sprite": "werkstatt-objekte#krone_m",
+   "x": 256,
+   "y": 272,
+   "sprite": "waldpfad-objekte#krone_a",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 320,
+   "y": 300,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 320,
+   "y": 268,
+   "sprite": "waldpfad-objekte#krone_b",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 400,
+   "y": 304,
+   "sprite": "waldpfad-objekte#baum_a",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -14,
+    "y": -6,
+    "w": 28,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 400,
+   "y": 272,
+   "sprite": "waldpfad-objekte#krone_a",
+   "ebene": "ueber"
+  },
+  {
+   "typ": "baum",
+   "x": 456,
+   "y": 300,
+   "sprite": "waldpfad-objekte#baum_b",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -9,
+    "y": -6,
+    "w": 18,
+    "h": 6
+   }
+  },
+  {
+   "typ": "baumkrone",
+   "x": 456,
+   "y": 268,
+   "sprite": "waldpfad-objekte#krone_b",
    "ebene": "ueber"
   },
   {
    "typ": "busch",
-   "x": 136,
-   "y": 208,
-   "sprite": "werkstatt-objekte#busch",
+   "x": 240,
+   "y": 144,
+   "sprite": "waldpfad-objekte#busch",
    "ebene": "objekt",
    "fuss": {
     "x": -13,
@@ -119,9 +339,121 @@
     "w": 25,
     "h": 8
    }
+  },
+  {
+   "typ": "busch",
+   "x": 384,
+   "y": 140,
+   "sprite": "waldpfad-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 352,
+   "y": 264,
+   "sprite": "waldpfad-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 168,
+   "y": 280,
+   "sprite": "waldpfad-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 440,
+   "y": 256,
+   "sprite": "waldpfad-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "busch",
+   "x": 40,
+   "y": 128,
+   "sprite": "waldpfad-objekte#busch",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -13,
+    "y": -8,
+    "w": 25,
+    "h": 8
+   }
+  },
+  {
+   "typ": "baumstumpf",
+   "x": 200,
+   "y": 232,
+   "sprite": "waldpfad-objekte#baumstumpf",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -12,
+    "y": -7,
+    "w": 24,
+    "h": 7
+   }
+  },
+  {
+   "typ": "wegweiser",
+   "x": 420,
+   "y": 168,
+   "sprite": "waldpfad-objekte#wegweiser",
+   "ebene": "objekt",
+   "fuss": {
+    "x": -5,
+    "y": -4,
+    "w": 10,
+    "h": 4
+   }
   }
  ],
- "interaktionen": [],
+ "interaktionen": [
+  {
+   "id": "wegweiser",
+   "x": 404,
+   "y": 160,
+   "w": 32,
+   "h": 24,
+   "text": "Wegweiser lesen",
+   "aktion": "sprechen",
+   "satz": "Rechts: Werkstatt. Links: noch Nebel."
+  },
+  {
+   "id": "baumstumpf",
+   "x": 184,
+   "y": 216,
+   "w": 32,
+   "h": 28,
+   "text": "Baumstumpf ansehen",
+   "aktion": "sprechen",
+   "satz": "Hier saß mal ein Frosch. Jetzt sitzt hier keiner."
+  }
+ ],
  "ausgaenge": [
   {
    "zone": {
