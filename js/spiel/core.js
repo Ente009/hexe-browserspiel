@@ -9,6 +9,7 @@
    HEX-023b: bei animationen !== true statt dessen optional Spiel.deko.spritesStatisch(karte) → gleiches Format, ein fester Frame
    (jedes Bild, auch in der Pause, in derselben y-Sortierung). Fehlt = still (nichts gezeichnet, wie vorher); wirft = 1 console.error,
    statische Deko danach aus. init/tick/zeichne/clear/sprites/reagiere bei „aus“ weiterhin nie (Nebel, Dampf, Blätter bleiben weg).
+   HEX-025: bei animationen === true vor jedem Lichttakt Spiel.tageszeit.bei(schritte) → Spiel.licht.setzeTageszeit (optional; fehlt = Licht wie vorher).
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
@@ -269,6 +270,13 @@
     ctx.fillStyle = '#fff'; ctx.font = '8px monospace'; ctx.fillText('KOLLISION (K)', 4, 10);
   }
 
+  // ---------- HEX-025 Tageszeit ----------
+  function tageszeit() {
+    if (!S.einstellungen || S.einstellungen.animationen !== true || !S.tageszeit || typeof S.licht.setzeTageszeit !== 'function') return;
+    var t = S.tageszeit.bei(zustand.schritte);
+    S.licht.setzeTageszeit(t.ambient, t.faktor);
+  }
+
   // ---------- Schleife ----------
   var letzte = null, rest = 0, eDruck = false;
   function takt(jetzt) {
@@ -281,6 +289,7 @@
     if (!zustand.pausiert) {
       rest += dt;
       while (rest >= SCHRITT) { update(SCHRITT); rest -= SCHRITT; }
+      tageszeit();                                // HEX-025: vor dem Lichttakt, nicht in der Pause
       S.licht.tick(zustand.schritte * SCHRITT);   // HEX-018: 12-fps-Lichttakt aus der Spielzeit
       deko('tick', zustand.schritte * SCHRITT);   // HEX-019a: Spielzeit in ms, nicht in der Pause
     } else {

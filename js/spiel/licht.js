@@ -30,6 +30,12 @@
  *   Spiel.licht.stats              { ticks, malen }  Zähler für Messungen
  *   Spiel.licht.zellen(), ebene(), HOLD   nur für Tests (Stufen je Zelle, Lichtebene, Ruhe-Takte)
  * Beim Kartenwechsel werden alle Quellen neu aus der Zielkarte gesetzt (add()-Quellen gelten nur für die aktuelle Karte).
+ *
+ * HEX-025 Tag/Nacht: Spiel.licht.setzeTageszeit(ambient, faktor) merkt die Werte vor; übernommen werden sie erst im nächsten
+ * 12-fps-Lichttakt. Neu gerechnet wird nur, wenn sich das Byte round(ambient·255) oder der Faktor ändert (dirty).
+ * faktor (Nacht ≥ 1) verstärkt jede Quelle: amp = intensity·value·faktor, je Quelle höchstens 1 (nie schwächer als ohne Faktor).
+ * Ohne Aufruf (Animationen aus) bleibt AMBIENT 0,40 und faktor 1 → Bild wie vor HEX-025. Karten ohne Lichtquellen: unverändert.
+ *   Spiel.licht.tageszeit()  -> { ambient, byte, faktor }  aktuell wirksame Werte (Tests)
  */
 (function () {
   'use strict';
@@ -39,7 +45,8 @@
   // F-020 Nachtrag, Regel 2 aus light.js (fix-v4): steht der ungekappte Rohwert einer Zelle HOLD Lichttakte lang still
   // (|Δ| < STILL), bekommt sie die Stufe ohne Hysterese – wie im Ruhebild. HOLD 2 Takte = 167 ms (light.js: 150 ms).
   var HOLD = 2, STILL = 1e-6;
-  var AMBIENT = 0.40;                                   // Abdunklung außerhalb der Lichter (0.5 = neutral)
+  var AMBIENT = 0.40;                                   // Abdunklung außerhalb der Lichter (0.5 = neutral); HEX-025: setzbar
+  var FAKTOR = 1, vorAmbient = null, vorFaktor = null;  // HEX-025: Nacht-Faktor, vorgemerkte Werte bis zum nächsten Lichttakt
   var PALETTE = { warm: [[150, 136, 118], [170, 146, 116], [192, 158, 114]] };   // wie light.js 'warm'
 
   var lights = [], GW = 0, GH = 0, canvas = null, cctx = null, img = null;
@@ -95,6 +102,7 @@
     sum.fill(0); offen = 0;
     for (var k = 0; k < lights.length; k++) {
       var L = lights[k], amp = L.intensity * L.value;
+      if (FAKTOR !== 1) amp = Math.min(Math.max(1, amp), amp * FAKTOR);   // HEX-025: Nacht, je Quelle höchstens 1
       if (amp <= 0) continue;
       var rx2 = L.rx * L.rx, ry2 = L.ry * L.ry;
       var gx0 = Math.max(0, Math.floor((L.x - L.rx) / CELL)), gx1 = Math.min(GW - 1, Math.floor((L.x + L.rx) / CELL));
@@ -136,7 +144,21 @@
     if (uhr < TICK - 1e-6) return;                     // 1e-6: Rundung von 5 × 1000/60 bzw. 1000/12 verschluckt keinen Takt
     uhr = Math.max(0, uhr - TICK);
     stats.ticks++;
+    uebernimmTageszeit();
     if (dirty) rechne(false);
+  }
+
+  // HEX-025: vorgemerkte Tageszeit übernehmen (nur im Lichttakt); dirty nur bei geändertem Byte bzw. Faktor
+  function uebernimmTageszeit() {
+    if (vorAmbient === null) return;
+    var a = vorAmbient, f = vorFaktor; vorAmbient = vorFaktor = null;
+    if (Math.round(a * 255) !== Math.round(AMBIENT * 255) || f !== FAKTOR) dirty = true;
+    AMBIENT = a; FAKTOR = f;
+  }
+  function setzeTageszeit(ambient, faktor) {
+    var a = +ambient, f = +faktor;
+    if (!isFinite(a) || !isFinite(f)) return;
+    vorAmbient = Math.max(0, Math.min(1, a)); vorFaktor = Math.max(1, f);
   }
 
   // Zeichnen über die Spielfläche (nach den Objekten, vor Textblase/Debug/Abblende)
@@ -159,6 +181,7 @@
     an: function (b) { aktiv = !!b; }, stats: stats,
     zellen: function () { return level ? Array.from(level) : []; },   // Stufen je Zelle (Tests F-020 Nachtrag)
     ebene: function () { return canvas; }, HOLD: HOLD,                    // Lichtebene GW×GH (Tests)
+    setzeTageszeit: setzeTageszeit, tageszeit: function () { return { ambient: AMBIENT, byte: Math.round(AMBIENT * 255), faktor: FAKTOR }; },   // HEX-025
     setzeKarte: setzeKarte, tick: tick, zeichne: zeichne, CELL: CELL, FPS: FPS
   };
 })();
