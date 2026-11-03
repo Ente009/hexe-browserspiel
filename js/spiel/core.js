@@ -1,4 +1,4 @@
-/* HEX-011 Kern: rAF-Schleife mit fester Logik-Schrittweite (60 Hz) und dt-Begrenzung, Zustand, Pause, Zeichnen.
+/* HEX-011 Kern: rAF-Schleife mit fester Logik-Schrittweite (Spiel.SCHRITTE_PRO_SEKUNDE = 60 Hz) und dt-Begrenzung, Zustand, Pause, Zeichnen.
    HEX-015: Zeichnen Boden (Bild aus karte.boden) → Objekte + Hexe nach Fußpunkt-y sortiert (gleiches y: Objekt zuerst) → Ebene "ueber".
    Objekt-Sprites "<sheet>#<name>" aus assets/spiel/<sheet>.png + .json (Format sprites{name:{x,y,w,h,anker,frames,fps}}).
    Startkarte: werkstatt; ?karte=<id> lädt eine andere Karte (für Tests mit test.json).
@@ -10,12 +10,16 @@
    (jedes Bild, auch in der Pause, in derselben y-Sortierung). Fehlt = still (nichts gezeichnet, wie vorher); wirft = 1 console.error,
    statische Deko danach aus. init/tick/zeichne/clear/sprites/reagiere bei „aus“ weiterhin nie (Nebel, Dampf, Blätter bleiben weg).
    HEX-025: bei animationen === true vor jedem Lichttakt Spiel.tageszeit.bei(schritte) → Spiel.licht.setzeTageszeit (optional; fehlt = Licht wie vorher).
+   HEX-036: eine gemeinsame Konstante Spiel.SCHRITTE_PRO_SEKUNDE (60 Logikschritte je s, nicht änderbar); SCHRITT und die
+   Spielzeit nutzen sie. tageszeit.js liest sie beim Aufruf (core.js lädt zuletzt), deko.js soll sie ebenso nutzen (Unter).
    HEX-017: Ausgänge (Fußbox überlappt zone) → wechsleStandort(ziel, einstieg) mit kurzer Abblende; Einstieg nur, wenn fussUeberlappung = 0. */
 (function () {
   'use strict';
   var S = window.Spiel;
   var BREITE = 480, HOEHE = 320;
-  var SCHRITT = 1000 / 60;      // ms je Logikschritt
+  var SCHRITTE_PRO_SEKUNDE = 60;                    // HEX-036: Logikschritte je s (einzige Stelle)
+  Object.defineProperty(S, 'SCHRITTE_PRO_SEKUNDE', { value: SCHRITTE_PRO_SEKUNDE, writable: false, enumerable: true, configurable: false });
+  var SCHRITT = 1000 / SCHRITTE_PRO_SEKUNDE;      // ms je Logikschritt
   var DT_MAX = 100;             // ms, wie TitleScreen.onTick in main.js
 
   var canvas = document.getElementById('spiel');
@@ -218,7 +222,7 @@
     t = karte.tile;
     if (boden) ctx.drawImage(boden, -k.x, -k.y); else zeichneRaster(k, t);
     // Objekte + Hexe y-sortiert, dann Ebene ueber
-    var zeit = zustand.schritte / 60;   // Spielzeit in s, steht in der Pause
+    var zeit = zustand.schritte / SCHRITTE_PRO_SEKUNDE;   // Spielzeit in s, steht in der Pause
     zeichenListe(karte.objekte, zustand.figur, dekoSprites()).forEach(function (e) {
       if (e.hexe) { S.hexeFigur.zeichne(ctx, e.o, k); return; }
       if (e.deko && listeStatisch) { if (!statischAus) { try { e.o.zeichne(ctx, k); } catch (err) { statischFehler('spritesStatisch().zeichne', err); } } return; }   // HEX-023b

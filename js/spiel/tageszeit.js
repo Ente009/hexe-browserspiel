@@ -1,4 +1,5 @@
-/* HEX-025 Tageszeit: Tag-Nacht-Zyklus aus der Spielzeit (zustand.schritte, 60 Logikschritte je s; steht in der Pause).
+/* HEX-025 Tageszeit: Tag-Nacht-Zyklus aus der Spielzeit (zustand.schritte, Spiel.SCHRITTE_PRO_SEKUNDE = 60 Logikschritte je s
+ * aus core.js, HEX-036; steht in der Pause).
  * Boss 22.10.: ein Zyklus = 20 echte Minuten Spielzeit, Start am frühen Abend; Zeit läuft über Kartenwechsel weiter.
  * HP 22.10./29.10.: Dunkelung (soft-light, 0,50 = neutral) Tag 0,50 · Abend 0,40 (= Bild vor HEX-025) · Nacht 0,30.
  * Verlauf mit Plateaus, Übergänge mit smoothstep (Sekunden im Zyklus):
@@ -7,12 +8,13 @@
  * Nur Rechnen, kein Zustand: core.js ruft bei Animationen an Spiel.tageszeit.bei(schritte) und gibt das Ergebnis an
  * Spiel.licht.setzeTageszeit; licht.js übernimmt es im nächsten 12-fps-Lichttakt. Animationen aus: kein Aufruf → fest 0,40.
  *   Spiel.tageszeit.bei(schritte) -> { s, ambient, faktor }   s = Sekunde im Zyklus
- *   Spiel.tageszeit.ambient(s), faktor(ambient), ZYKLUS_S, PUNKTE, SPIELSCHRITTE_JE_S
+ *   Spiel.tageszeit.ambient(s), faktor(ambient), ZYKLUS_S, PUNKTE
+ * HEX-036: keine eigene 60 mehr; bei() liest Spiel.SCHRITTE_PRO_SEKUNDE beim Aufruf (core.js wird nach dieser Datei geladen).
  */
 (function () {
   'use strict';
   var S = window.Spiel = window.Spiel || {};
-  var SPIELSCHRITTE_JE_S = 60, ZYKLUS_S = 1200;
+  var ZYKLUS_S = 1200;
   var ABEND = 0.40, NACHT = 0.30, TAG = 0.50, NACHT_FAKTOR = 1.25;
   // [Sekunde, Dunkelung]; zwischen zwei Punkten mit verschiedenem Wert: smoothstep, sonst Plateau
   var PUNKTE = [[0, ABEND], [180, ABEND], [300, NACHT], [660, NACHT], [780, TAG], [1080, TAG], [1200, ABEND]];
@@ -31,8 +33,8 @@
     return 1 + (NACHT_FAKTOR - 1) * anteil;
   }
   function bei(schritte) {
-    var s = (schritte / SPIELSCHRITTE_JE_S) % ZYKLUS_S, a = ambient(s);
+    var s = (schritte / S.SCHRITTE_PRO_SEKUNDE) % ZYKLUS_S, a = ambient(s);
     return { s: s, ambient: a, faktor: faktor(a) };
   }
-  S.tageszeit = { bei: bei, ambient: ambient, faktor: faktor, ZYKLUS_S: ZYKLUS_S, PUNKTE: PUNKTE, SPIELSCHRITTE_JE_S: SPIELSCHRITTE_JE_S };
+  S.tageszeit = { bei: bei, ambient: ambient, faktor: faktor, ZYKLUS_S: ZYKLUS_S, PUNKTE: PUNKTE };
 })();

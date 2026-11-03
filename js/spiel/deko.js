@@ -38,8 +38,9 @@
   function zahl(v) { return typeof v === 'number' && isFinite(v); }
   function px(ctx, k, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x) - k.x, Math.round(y) - k.y, w, h); }
 
-  // Spielzeit-Raster (gemeinsam für Laternen und Katze, HEX-033): 1 Spielschritt = 1/60 s wie core.js (SCHRITT = 1000 / 60)
-  var SPIELSCHRITTE_JE_S = 60;
+  // Spielzeit-Raster (gemeinsam für Laternen und Katze, HEX-033/HEX-036): Schritte je s kommen aus Spiel.SCHRITTE_PRO_SEKUNDE (core.js).
+  // deko.js lädt vor core.js → Wert nur zur Laufzeit (tick) lesen, nie beim Laden kopieren.
+  function schritteJeS() { return S.SCHRITTE_PRO_SEKUNDE; }
 
   // ---------- Laternen ----------
   var LATERNE_FPS = 6, LATERNE_FRAMES = 3, HELL = [0.80, 1.00, 0.55];
@@ -50,8 +51,8 @@
       this.frame = -1;
     },
     tick: function (ms) {
-      // gleiche Rechnung wie core.js (zeit = schritte / SPIELSCHRITTE_JE_S): Schritte aus ms zurückgewinnen, sonst Rundungsabweichung an Frame-Grenzen
-      var schritte = Math.round(ms * SPIELSCHRITTE_JE_S / 1000), f = Math.floor(schritte / SPIELSCHRITTE_JE_S * LATERNE_FPS) % LATERNE_FRAMES;
+      // gleiche Rechnung wie core.js (zeit = schritte / SCHRITTE_PRO_SEKUNDE): Schritte aus ms zurückgewinnen, sonst Rundungsabweichung an Frame-Grenzen
+      var sps = schritteJeS(), schritte = Math.round(ms * sps / 1000), f = Math.floor(schritte / sps * LATERNE_FPS) % LATERNE_FRAMES;
       if (f === this.frame) return;
       this.frame = f;
       for (var i = 0; i < this.ids.length; i++) S.licht.set(this.ids[i], HELL[f]);
@@ -126,7 +127,7 @@
   // E während laufender Reaktion: IGNORIEREN (deterministisch). Reihenfolge im tick: erst Ende prüfen (Spielzeit ≥ Start + 1,25 s
   // → Reaktion vorbei), dann Anfrage: läuft noch eine Reaktion → Anfrage verworfen, sonst Start. Kein Neustart, kein Nachholen.
   // Nur Farben nacht/gelb wie die Katze bisher, harte Pixel.
-  var KATZE_FPS = 4, REAKTION_FPS = 8, REAKTION_RUHE = 12;   // Spielzeit-Raster SPIELSCHRITTE_JE_S steht oben (HEX-033)
+  var KATZE_FPS = 4, REAKTION_FPS = 8, REAKTION_RUHE = 12;   // Spielzeit-Raster schritteJeS() steht oben (HEX-033)
   // je Phase: Kopfhub in px, Schwanz (0 = Idle-Lage, 1 = aufgestellt, 2 = aufgestellt + Spitze links), Augen zu
   var REAKTION = [
     { kopf: 1, schwanz: 0, zu: false }, { kopf: 2, schwanz: 1, zu: false }, { kopf: 2, schwanz: 2, zu: false }, { kopf: 2, schwanz: 1, zu: false },
@@ -134,7 +135,8 @@
     { kopf: 1, schwanz: 0, zu: false }, { kopf: 0, schwanz: 0, zu: false }];
   // F-025: Dauer aus Phasen und FPS abgeleitet statt fest 75: 10 Phasen × 60/8 Schritte = 75 Schritte = 1,25 s.
   // Math.ceil, damit auch bei FPS, die 60 nicht teilen, die letzte Phase ihre volle Zeit bekommt (hier exakt 75).
-  var REAKTION_PHASEN = REAKTION.length, REAKTION_SCHRITTE = Math.ceil(REAKTION_PHASEN * SPIELSCHRITTE_JE_S / REAKTION_FPS);
+  var REAKTION_PHASEN = REAKTION.length;
+  function reaktionSchritte(sps) { return Math.ceil(REAKTION_PHASEN * sps / REAKTION_FPS); }   // HEX-036: zur Laufzeit (bei 60: 75)
   // Platz aus der Karte (gemeinsam für init und spritesStatisch, HEX-023b): gültig nur mit endlichen Zahlen und w, h > 0
   function katzePlatz(karte) {
     var p = dekoDaten(karte).katze;
@@ -177,10 +179,10 @@
     },
     tick: function (ms) {
       if (!this.aktiv) return;
-      var jetzt = Math.round(ms * SPIELSCHRITTE_JE_S / 1000);   // Spielschritt (wie Laternen), ganzzahlig → keine Rundungsabweichung
-      if (this.rStart >= 0 && jetzt - this.rStart >= REAKTION_SCHRITTE) { this.rStart = -1; this.rPhase = -1; this.pause = Math.max(this.pause, REAKTION_RUHE); }
+      var sps = schritteJeS(), jetzt = Math.round(ms * sps / 1000);   // Spielschritt (wie Laternen), ganzzahlig → keine Rundungsabweichung
+      if (this.rStart >= 0 && jetzt - this.rStart >= reaktionSchritte(sps)) { this.rStart = -1; this.rPhase = -1; this.pause = Math.max(this.pause, REAKTION_RUHE); }
       if (this.anfrage) { this.anfrage = false; if (this.rStart < 0) { this.rStart = jetzt; this.ziel = this.x; } }   // läuft schon eine → ignoriert
-      if (this.rStart >= 0) this.rPhase = Math.min(REAKTION_PHASEN - 1, Math.floor((jetzt - this.rStart) * REAKTION_FPS / SPIELSCHRITTE_JE_S));
+      if (this.rStart >= 0) this.rPhase = Math.min(REAKTION_PHASEN - 1, Math.floor((jetzt - this.rStart) * REAKTION_FPS / sps));
       var s = Math.floor(ms / 1000 * KATZE_FPS);
       if (this.schritt < 0) { this.schritt = s; return; }
       while (this.schritt < s) {
