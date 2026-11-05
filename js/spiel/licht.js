@@ -34,7 +34,12 @@
  * HEX-025 Tag/Nacht: Spiel.licht.setzeTageszeit(ambient, faktor) merkt die Werte vor; übernommen werden sie erst im nächsten
  * 12-fps-Lichttakt. Neu gerechnet wird nur, wenn sich das Byte round(ambient·255) oder der Faktor ändert (dirty).
  * faktor (Nacht ≥ 1) verstärkt jede Quelle: amp = intensity·value·faktor, je Quelle höchstens 1 (nie schwächer als ohne Faktor).
- * Ohne Aufruf (Animationen aus) bleibt AMBIENT 0,40 und faktor 1 → Bild wie vor HEX-025. Karten ohne Lichtquellen: unverändert.
+ * Ohne Aufruf (Animationen aus) bleibt AMBIENT 0,40 und faktor 1 → Bild wie vor HEX-025.
+ * HEX-037 Karten ohne Lichtquellen (Waldpfad, Testkarte): keine Lichtebene, statt dessen eine gleichmäßige soft-light-Fläche
+ * mit AUSSEN = AMBIENT + 0,10 (Abend 0,50 = neutral → nichts gezeichnet, Bild wie vorher; Nacht 0,40; Tag 0,60).
+ * Gleicher Abstand wie in der Werkstatt (je 0,10 dunkler/heller als der Abend), aber nachts nur so dunkel wie der Werkstatt-Schatten
+ * am Abend. Übernahme ebenfalls nur im 12-fps-Lichttakt; Animationen aus → AMBIENT bleibt 0,40 → neutral, Bild unverändert.
+ *   Spiel.licht.aussen()  -> { ambient, byte, zeichnet }  wirksame Fläche auf Karten ohne Quellen (Tests)
  *   Spiel.licht.tageszeit()  -> { ambient, byte, faktor }  aktuell wirksame Werte (Tests)
  */
 (function () {
@@ -47,6 +52,7 @@
   var HOLD = 2, STILL = 1e-6;
   var AMBIENT = 0.40;                                   // Abdunklung außerhalb der Lichter (0.5 = neutral); HEX-025: setzbar
   var FAKTOR = 1, vorAmbient = null, vorFaktor = null;  // HEX-025: Nacht-Faktor, vorgemerkte Werte bis zum nächsten Lichttakt
+  var AUSSEN_PLUS = 0.10;                               // HEX-037: Karten ohne Quellen = AMBIENT + 0,10 (Abend neutral)
   var PALETTE = { warm: [[150, 136, 118], [170, 146, 116], [192, 158, 114]] };   // wie light.js 'warm'
 
   var lights = [], GW = 0, GH = 0, canvas = null, cctx = null, img = null;
@@ -63,6 +69,7 @@
 
   function add(cfg) {
     remove(cfg.id, true);
+    if (!lights.length) { letzteSpielzeit = null; uhr = 0; }   // HEX-037: erste Quelle startet den Lichttakt neu wie vor HEX-037 (kein Rückstau aus aussenTick)
     var r = +cfg.radius || 0, rest = cfg.rest == null ? 1 : +cfg.rest;   // Ruhewert (Standard 1) ist auch der Startwert
     lights.push({ id: String(cfg.id), typ: cfg.typ || null, x: +cfg.x, y: +cfg.y, rx: +cfg.rx || r, ry: +cfg.ry || r,
       intensity: cfg.intensity == null ? 1 : +cfg.intensity, rest: rest, value: rest });
@@ -137,7 +144,7 @@
 
   // spielzeit in ms (steht in der Pause). Ein Lichttakt je 1/12 s Spielzeit.
   function tick(spielzeit) {
-    if (!lights.length) return;
+    if (!lights.length) { aussenTick(spielzeit); return; }   // HEX-037: nur Takt + Tageszeit, Zähler stats bleiben wie vorher
     if (letzteSpielzeit === null) letzteSpielzeit = spielzeit;
     uhr += Math.max(0, spielzeit - letzteSpielzeit);
     letzteSpielzeit = spielzeit;
@@ -146,6 +153,20 @@
     stats.ticks++;
     uebernimmTageszeit();
     if (dirty) rechne(false);
+  }
+
+  // HEX-037: Karten ohne Quellen – gleicher 12-fps-Takt, nur die Tageszeit übernehmen (kein rechne, kein stats.ticks)
+  function aussenTick(spielzeit) {
+    if (letzteSpielzeit === null) letzteSpielzeit = spielzeit;
+    uhr += Math.max(0, spielzeit - letzteSpielzeit);
+    letzteSpielzeit = spielzeit;
+    if (uhr < TICK - 1e-6) return;
+    uhr = Math.max(0, uhr - TICK);
+    uebernimmTageszeit();
+  }
+  function aussen() {
+    var a = Math.max(0, Math.min(1, AMBIENT + AUSSEN_PLUS)), byte = Math.round(a * 255);
+    return { ambient: a, byte: byte, zeichnet: Math.abs(a - 0.5) >= 0.5 / 255 };   // ±½ Byte um 0,50 = neutral, nichts zeichnen
   }
 
   // HEX-025: vorgemerkte Tageszeit übernehmen (nur im Lichttakt); dirty nur bei geändertem Byte bzw. Faktor
@@ -163,7 +184,17 @@
 
   // Zeichnen über die Spielfläche (nach den Objekten, vor Textblase/Debug/Abblende)
   function zeichne(ctx, kamera) {
-    if (!aktiv || !lights.length || !canvas) return;
+    if (!aktiv || !canvas) return;
+    if (!lights.length) {                               // HEX-037: gleichmäßige Fläche über der Karte, Abend neutral
+      var A = aussen();
+      if (!A.zeichnet) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.fillStyle = 'rgb(' + A.byte + ',' + A.byte + ',' + A.byte + ')';
+      ctx.fillRect(-kamera.x, -kamera.y, GW * CELL, GH * CELL);
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.globalCompositeOperation = 'soft-light';
@@ -181,7 +212,7 @@
     an: function (b) { aktiv = !!b; }, stats: stats,
     zellen: function () { return level ? Array.from(level) : []; },   // Stufen je Zelle (Tests F-020 Nachtrag)
     ebene: function () { return canvas; }, HOLD: HOLD,                    // Lichtebene GW×GH (Tests)
-    setzeTageszeit: setzeTageszeit, tageszeit: function () { return { ambient: AMBIENT, byte: Math.round(AMBIENT * 255), faktor: FAKTOR }; },   // HEX-025
+    setzeTageszeit: setzeTageszeit, aussen: aussen, tageszeit: function () { return { ambient: AMBIENT, byte: Math.round(AMBIENT * 255), faktor: FAKTOR }; },   // HEX-025
     setzeKarte: setzeKarte, tick: tick, zeichne: zeichne, CELL: CELL, FPS: FPS
   };
 })();
