@@ -1,4 +1,4 @@
-/* HEX-026 Inventar: Kräuter sammeln + Zähler (HP). Nur für diese Sitzung im Speicher, kein Speichern (kommt mit HEX-027).
+/* HEX-026/027 Inventar: Kräuter sammeln + Zähler (HP). Sitzung + Restore aus Spielstand (HEX-027).
    Schnittstelle:
    - Spiel.inventar.SORTEN = ['mondkraut', 'gluehpilz', 'nebelfarn'] (feste Reihenfolge: HUD und Sheet)
    - sammle(karteId, zone) zählt zone.daten.gegenstand +1 und merkt sich karteId + zone.id (aufgerufen von interaktion.js, aktion sammeln)
@@ -30,6 +30,31 @@
   function schonGesammelt(karteId, zoneId) { return !!weg[schluessel(karteId, zoneId)]; }
   function anzahl(s) { return zahl[s] || 0; }
   function stand() { var o = {}; SORTEN.forEach(function (s) { o[s] = zahl[s]; }); return o; }
+  // HEX-027: Export für Speichern – Liste {karte, zone}; Restore setzt Zähler und weg neu (einmal weg bleibt weg)
+  function gesammelt() {
+    var L = [];
+    Object.keys(weg).forEach(function (k) {
+      if (!weg[k]) return;
+      var i = k.indexOf('\u0000');
+      if (i < 0) return;
+      L.push({ karte: k.slice(0, i), zone: k.slice(i + 1) });
+    });
+    return L;
+  }
+  function setzeStand(inv, liste) {
+    SORTEN.forEach(function (s) { zahl[s] = 0; });
+    weg = {};
+    if (inv && typeof inv === 'object') {
+      SORTEN.forEach(function (s) {
+        var n = inv[s];
+        if (typeof n === 'number' && isFinite(n) && n >= 0) zahl[s] = Math.floor(n);
+      });
+    }
+    (liste || []).forEach(function (e) {
+      if (!e || typeof e.karte !== 'string' || typeof e.zone !== 'string') return;
+      weg[schluessel(e.karte, e.zone)] = true;
+    });
+  }
 
   function ladeBild() {
     if (bildStatus !== 'nein') return;
@@ -84,6 +109,7 @@
 
   S.inventar = {
     SORTEN: SORTEN.slice(), sammle: sammle, schonGesammelt: schonGesammelt, anzahl: anzahl, stand: stand,
+    gesammelt: gesammelt, setzeStand: setzeStand,
     zeichneKraeuter: zeichneKraeuter, zeichneHud: zeichneHud,
     get bildStatus() { return bildStatus; }
   };

@@ -115,6 +115,7 @@
   registriereAktion('sammeln', function (z, a) {
     a.sage(z.daten.satz); a.entferne(z);
     if ('gegenstand' in z.daten && S.inventar) S.inventar.sammle(karteId, z);
+    if (S.speicher) S.speicher.speichereJetzt();   // HEX-027: nach erfolgreichem Sammeln
   });
   // HEX-017: gesperrt = Textblase (satz Pflicht, Ziel ist ein gesperrter Standort laut standorte.js)
   registriereAktion('gesperrt', function (z, a) { a.sage(z.daten.satz); });

@@ -21,6 +21,7 @@
     <!-- Ebene 3: Bedienoberfläche – unsichtbare Klickflächen über den gemalten Buttons -->
     <div id="layer-ui" class="layer">
       <button type="button" id="btn-play" class="hotspot" aria-label="Spielen"></button>
+      <button type="button" id="btn-fortsetzen" class="fortsetzen" hidden>Fortsetzen</button>
       <button type="button" id="btn-settings" class="hotspot" aria-label="Einstellungen" aria-haspopup="dialog"></button>
       <button type="button" id="btn-music" class="hotspot" aria-label="Musik einschalten" aria-pressed="false">
         <svg class="music-off-mark" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
@@ -58,6 +59,7 @@
     </form>
   </dialog>
 
+  <script src="js/spiel/speicher.js"></script>
   <script src="js/main.js"></script>
   <script src="js/light.js"></script>
   <script src="js/light-sources.js"></script>

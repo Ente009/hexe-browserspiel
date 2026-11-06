@@ -274,3 +274,27 @@ body {
   image-rendering: pixelated;
   pointer-events: none;
 }
+
+/* HEX-027: Fortsetzen nur sichtbar bei gültigem Spielstand */
+#btn-fortsetzen {
+  position: absolute;
+  left: 31.8%;
+  top: 64.2%;
+  width: 35.6%;
+  height: 5.5%;
+  padding: 0;
+  border: 0.15vmin solid #c8873a;
+  border-radius: 0.6vmin;
+  background: rgba(20, 14, 24, 0.85);
+  color: #f3dca0;
+  font: 600 1.8vmin/1 monospace;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+#btn-fortsetzen:hover,
+#btn-fortsetzen:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.2vmin #ffd27a;
+  background: rgba(40, 28, 36, 0.92);
+}
+#btn-fortsetzen[hidden] { display: none !important; }

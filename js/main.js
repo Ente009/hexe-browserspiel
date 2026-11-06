@@ -40,6 +40,7 @@
   // ---------- Elemente ----------
   var $ = function (id) { return document.getElementById(id); };
   var btnPlay = $('btn-play');
+  var btnFortsetzen = $('btn-fortsetzen');
   var btnSettings = $('btn-settings');
   var btnMusic = $('btn-music');
   var dlgPlay = $('dialog-play');
@@ -79,8 +80,17 @@
   });
 
   // ---------- Ereignisse ----------
-  // HEX-011: „Spielen“ führt direkt ins Spiel (Entscheidung Boss zu Plan §4, Frage 8)
+  // HEX-011: „Spielen“ = Neues Spiel (HEX-027: überschreibt Stand erst beim nächsten Speichern)
   btnPlay.addEventListener('click', function () { window.location.href = 'spiel.html'; });
+  // HEX-027: „Fortsetzen“ nur bei gültigem v1-Stand
+  function renderFortsetzen() {
+    if (!btnFortsetzen) return;
+    var da = window.Spiel && Spiel.speicher && Spiel.speicher.existiert();
+    btnFortsetzen.hidden = !da;
+  }
+  if (btnFortsetzen) {
+    btnFortsetzen.addEventListener('click', function () { window.location.href = 'spiel.html?fortsetzen=1'; });
+  }
 
   btnSettings.addEventListener('click', function () {
     renderSettings();
@@ -103,6 +113,7 @@
   // ---------- Start ----------
   renderMusic();
   renderSettings();
+  renderFortsetzen();
 
   // ---------- Gemeinsamer Takt für alle Animationen ----------
   // Eine einzige requestAnimationFrame-Schleife. Module melden sich mit

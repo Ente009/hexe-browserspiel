@@ -177,6 +177,7 @@
       zustand.blende = Math.min(1, w.t / BLENDE_MS);
       if (w.t >= BLENDE_MS && w.karte) {
         try { betrete(w.karte, w.einstieg); } catch (e) { zustand.wechsel = null; zustand.blende = 0; zeigeFehler(e); w.nein(e); return; }
+        if (S.speicher) S.speicher.speichereJetzt();   // HEX-027: nach erfolgreichem Kartenwechsel
         w.phase = 'ein'; w.t = 0;
       }
     } else {
@@ -311,5 +312,24 @@
   // HEX-016: Standard-Aktionen sprechen/sammeln stehen in interaktion.js (Satz aus der Karte).
 
   S.wechsleStandort = wechsleStandort;   // HEX-017
-  S.karte.lade(START).then(function (k) { betrete(k, 'start'); }).catch(zeigeFehler);
+
+  // HEX-027: Start – Fortsetzen lädt Stand (ort+inventar+weg), sonst Neues Spiel wie bisher
+  function starteSpiel() {
+    var laden = null;
+    try {
+      if (new URLSearchParams(location.search).get('fortsetzen') === '1' && S.speicher) laden = S.speicher.lies();
+    } catch (e) { laden = null; }
+    if (laden && S.inventar && typeof S.inventar.setzeStand === 'function') {
+      S.inventar.setzeStand(laden.inventar, laden.weg);
+      var kid = laden.ort.karte, eid = laden.ort.einstieg;
+      return S.karte.lade(kid).then(function (k) {
+        try { betrete(k, eid); }
+        catch (e) { return S.karte.lade('werkstatt').then(function (k2) { betrete(k2, 'start'); }); }
+      }).catch(function () {
+        return S.karte.lade('werkstatt').then(function (k) { betrete(k, 'start'); });
+      }).catch(zeigeFehler);
+    }
+    return S.karte.lade(START).then(function (k) { betrete(k, 'start'); }).catch(zeigeFehler);
+  }
+  starteSpiel();
 })();
