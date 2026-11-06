@@ -223,6 +223,7 @@
     if (boden) ctx.drawImage(boden, -k.x, -k.y); else zeichneRaster(k, t);
     // Objekte + Hexe y-sortiert, dann Ebene ueber
     var zeit = zustand.schritte / SCHRITTE_PRO_SEKUNDE;   // Spielzeit in s, steht in der Pause
+    if (S.inventar) S.inventar.zeichneKraeuter(ctx, k, S.interaktion.zonen);   // HEX-026: Kräuter am Boden, unter Objekten und Hexe
     zeichenListe(karte.objekte, zustand.figur, dekoSprites()).forEach(function (e) {
       if (e.hexe) { S.hexeFigur.zeichne(ctx, e.o, k); return; }
       if (e.deko && listeStatisch) { if (!statischAus) { try { e.o.zeichne(ctx, k); } catch (err) { statischFehler('spritesStatisch().zeichne', err); } } return; }   // HEX-023b
@@ -239,6 +240,7 @@
     deko('zeichne', ctx, k);   // HEX-019a: Deko in Kartenkoordinaten, nach Ebene ueber, unter dem Licht
     S.licht.zeichne(ctx, k);   // HEX-018: Licht/Abdunklung in Kartenkoordinaten, um die Kamera verschoben
     S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
+    if (S.inventar) S.inventar.zeichneHud(ctx);   // HEX-026: Zähler oben links (erst ab dem ersten Fund)
     if (S.karte.debug) zeichneDebug(k, t);
     if (zustand.blende > 0) { ctx.fillStyle = 'rgba(0,0,0,' + zustand.blende + ')'; ctx.fillRect(0, 0, BREITE, HOEHE); }   // HEX-017 Abblende
   }

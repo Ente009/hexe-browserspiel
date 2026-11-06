@@ -30,6 +30,7 @@
   var TILE = 16, RICHTUNGEN = ['hoch', 'runter', 'links', 'rechts']; var EBENEN = ['objekt', 'ueber']; var LICHT_FELDER = ['dx', 'dy', 'rx', 'ry', 'intensity'], LICHT_OPTIONAL = ['rest'];   // HEX-018, F-021 b
   var DEKO_FELDER = ['katze', 'dampf', 'blaetter', 'nebel'], KATZE_FELDER = ['x', 'y', 'w', 'h'], DAMPF_FELDER = ['x', 'y'];   // F-021 a
   var NEBEL_FELDER = ['dichte', 'farbe', 'hoehe'];   // HEX-021
+  var GEGENSTAENDE = ['mondkraut', 'gluehpilz', 'nebelfarn'];   // HEX-026: = Spiel.inventar.SORTEN
   var DEKO_RECHTECKE = ['katze'];   // F-024: Deko-Teile mit Rechteck {x,y,w,h}; gleichnamige Interaktionszone muss genau dieses Rechteck sein
   function pruefe(k, id) {
     function fehler(t) { throw new Error('Karte "' + id + '": ' + t); }
@@ -101,6 +102,11 @@
       }
       if (z.aktion === 'sprechen' && !('satz' in z) && !('saetze' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "sprechen")');
       if (z.aktion === 'sammeln' && !('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "sammeln")');
+      // HEX-026: gegenstand optional, nur bei aktion sammeln, eine der Sorten aus inventar.js
+      if ('gegenstand' in z) {
+        if (z.aktion !== 'sammeln') fehler(wo + '.gegenstand nur bei aktion "sammeln" erlaubt');
+        if (GEGENSTAENDE.indexOf(z.gegenstand) < 0) fehler(wo + '.gegenstand ' + JSON.stringify(z.gegenstand) + ' unbekannt (erlaubt: ' + GEGENSTAENDE.join(', ') + ')');
+      }
       // HEX-017: aktion gesperrt braucht satz und ziel = gesperrter Standort
       if (z.aktion === 'gesperrt') {
         if (!('satz' in z)) fehler(wo + '.satz fehlt (Pflicht bei aktion "gesperrt")');

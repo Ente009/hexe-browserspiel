@@ -8,7 +8,7 @@
   var BLASE_MS = 3000;
 
   var nachId = {}, nachAktion = {};
-  var zonen = [], aktiv = null, blase = null, zeit = 0;
+  var zonen = [], aktiv = null, blase = null, zeit = 0, karteId = null;
   var zaehler = { ausgeloest: 0, reagiere: 0 };
 
   function ueberlappt(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
@@ -18,9 +18,13 @@
   function registriereAktion(aktion, fn) { nachAktion[aktion] = fn; }
 
   // Zonen der Karte übernehmen (Kopie, Karte bleibt unverändert)
+  // HEX-026: schon gesammelte Kräuter (Spiel.inventar) bleiben in dieser Sitzung weg (aus: true)
   function setzeKarte(karte) {
+    karteId = karte && karte.id;
+    var inv = S.inventar;
     zonen = ((karte && karte.interaktionen) || []).map(function (z) {
-      return { id: z.id, x: z.x, y: z.y, w: z.w, h: z.h, text: z.text, aktion: z.aktion, daten: z, aus: false };
+      var aus = !!(inv && z.aktion === 'sammeln' && 'gegenstand' in z && inv.schonGesammelt(karteId, z.id));
+      return { id: z.id, x: z.x, y: z.y, w: z.w, h: z.h, text: z.text, aktion: z.aktion, daten: z, aus: aus };
     });
     aktiv = null; blase = null;
   }
@@ -107,7 +111,11 @@
     if (weiter >= L.length) { a.schliesse(); return; }
     a.sage(L[weiter]); blase.zone = z; blase.nr = weiter;
   });
-  registriereAktion('sammeln', function (z, a) { a.sage(z.daten.satz); a.entferne(z); });
+  // HEX-026: mit gegenstand zählt sammeln zusätzlich +1 im Inventar (fehlt inventar.js: nur Satz + Zone weg wie bisher)
+  registriereAktion('sammeln', function (z, a) {
+    a.sage(z.daten.satz); a.entferne(z);
+    if ('gegenstand' in z.daten && S.inventar) S.inventar.sammle(karteId, z);
+  });
   // HEX-017: gesperrt = Textblase (satz Pflicht, Ziel ist ein gesperrter Standort laut standorte.js)
   registriereAktion('gesperrt', function (z, a) { a.sage(z.daten.satz); });
 

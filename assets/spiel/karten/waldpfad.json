@@ -452,6 +452,83 @@
    "text": "Baumstumpf ansehen",
    "aktion": "sprechen",
    "satz": "Hier saß mal ein Frosch. Jetzt sitzt hier keiner."
+  },
+  {
+   "id": "mondkraut_1",
+   "x": 32,
+   "y": 148,
+   "w": 16,
+   "h": 16,
+   "text": "Mondkraut sammeln",
+   "aktion": "sammeln",
+   "satz": "Mondkraut eingesammelt.",
+   "gegenstand": "mondkraut"
+  },
+  {
+   "id": "nebelfarn_1",
+   "x": 80,
+   "y": 132,
+   "w": 16,
+   "h": 16,
+   "text": "Nebelfarn sammeln",
+   "aktion": "sammeln",
+   "satz": "Nebelfarn eingesammelt.",
+   "gegenstand": "nebelfarn"
+  },
+  {
+   "id": "mondkraut_2",
+   "x": 40,
+   "y": 196,
+   "w": 16,
+   "h": 16,
+   "text": "Mondkraut sammeln",
+   "aktion": "sammeln",
+   "satz": "Mondkraut eingesammelt.",
+   "gegenstand": "mondkraut"
+  },
+  {
+   "id": "gluehpilz_1",
+   "x": 144,
+   "y": 244,
+   "w": 16,
+   "h": 16,
+   "text": "Glühpilz sammeln",
+   "aktion": "sammeln",
+   "satz": "Glühpilz eingesammelt.",
+   "gegenstand": "gluehpilz"
+  },
+  {
+   "id": "nebelfarn_2",
+   "x": 224,
+   "y": 84,
+   "w": 16,
+   "h": 16,
+   "text": "Nebelfarn sammeln",
+   "aktion": "sammeln",
+   "satz": "Nebelfarn eingesammelt.",
+   "gegenstand": "nebelfarn"
+  },
+  {
+   "id": "mondkraut_3",
+   "x": 404,
+   "y": 88,
+   "w": 16,
+   "h": 16,
+   "text": "Mondkraut sammeln",
+   "aktion": "sammeln",
+   "satz": "Mondkraut eingesammelt.",
+   "gegenstand": "mondkraut"
+  },
+  {
+   "id": "gluehpilz_2",
+   "x": 328,
+   "y": 136,
+   "w": 16,
+   "h": 16,
+   "text": "Glühpilz sammeln",
+   "aktion": "sammeln",
+   "satz": "Glühpilz eingesammelt.",
+   "gegenstand": "gluehpilz"
   }
  ],
  "ausgaenge": [
