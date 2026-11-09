@@ -1,0 +1,8 @@
+{
+  "aufgaben": [
+    { "id": "kuerbis", "text": "Mit dem Kürbis sprechen" },
+    { "id": "mondkraut", "text": "3 Mondkraut sammeln" },
+    { "id": "trank", "text": "Einen Trank brauen", "abhakbar": false },
+    { "id": "fluss", "text": "Den Weg zum Fluss öffnen", "abhakbar": false }
+  ]
+}

@@ -136,7 +136,12 @@
     if (zustand.wechsel) { blendeSchritt(dt); eDruck = false; zustand.schritte++; return; }   // HEX-017: während der Abblende keine Bewegung
     S.hexeFigur.bewege(f, karte, S.eingabe.richtung(), dt);   // HEX-013: achsweise Kollision
     pruefeAusgang(f);
-    S.interaktion.aktualisiere(f, eDruck, dt);   // HEX-016: Hinweis in Reichweite, E einmal pro Druck
+    var eJetzt = eDruck;
+    S.interaktion.aktualisiere(f, eJetzt, dt);   // HEX-016: Hinweis in Reichweite, E einmal pro Druck
+    if (eJetzt && S.aufgaben && S.interaktion.aktiv && S.interaktion.aktiv.id === 'kuerbis') {
+      S.aufgaben.meldeSprechen('kuerbis');   // HEX-028: einmal sprechen Zone kuerbis
+    }
+    if (S.aufgaben) S.aufgaben.pruefe();   // HEX-028: Mondkraut >= 3 (auch nach Laden)
     eDruck = false;
     folgeKamera();
     zustand.schritte++;
@@ -242,6 +247,7 @@
     S.licht.zeichne(ctx, k);   // HEX-018: Licht/Abdunklung in Kartenkoordinaten, um die Kamera verschoben
     S.interaktion.zeichne(ctx, zustand.figur, k);   // HEX-016: Textblase + „E – …“ über allen Ebenen
     if (S.inventar) S.inventar.zeichneHud(ctx);   // HEX-026: Zähler oben links (erst ab dem ersten Fund)
+    if (S.aufgaben) S.aufgaben.zeichneHud(ctx);   // HEX-028: Aufgabenliste Text-HUD
     if (S.karte.debug) zeichneDebug(k, t);
     if (zustand.blende > 0) { ctx.fillStyle = 'rgba(0,0,0,' + zustand.blende + ')'; ctx.fillRect(0, 0, BREITE, HOEHE); }   // HEX-017 Abblende
   }
@@ -289,6 +295,7 @@
   function takt(jetzt) {
     if (S.eingabe.gedrueckt('pause')) setzePause(!zustand.pausiert);
     if (S.eingabe.gedrueckt('debug')) S.karte.debug = !S.karte.debug;
+    if (S.eingabe.gedrueckt('liste') && S.aufgaben) S.aufgaben.umschalten();   // HEX-028: auch in Pause
     if (S.eingabe.gedrueckt('aktion') && !zustand.pausiert) eDruck = true;   // HEX-016: in der Pause verworfen
     if (letzte === null) letzte = jetzt;
     var dt = Math.min(DT_MAX, jetzt - letzte);
@@ -321,6 +328,7 @@
     } catch (e) { laden = null; }
     if (laden && S.inventar && typeof S.inventar.setzeStand === 'function') {
       S.inventar.setzeStand(laden.inventar, laden.weg);
+      if (S.aufgaben && typeof S.aufgaben.setzeStand === 'function') S.aufgaben.setzeStand(laden.aufgaben || []);
       var kid = laden.ort.karte, eid = laden.ort.einstieg;
       return S.karte.lade(kid).then(function (k) {
         try { betrete(k, eid); }

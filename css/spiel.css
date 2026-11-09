@@ -11,7 +11,7 @@ html, body { margin: 0; touch-action: none; -webkit-user-select: none; user-sele
 /* Touch-Steuerung: nur bei Touch-Geräten sichtbar (core/eingabe setzt body.touch) */
 #touch { display: none; }
 body.touch #touch { display: block; }
-#dpad, #knopf-e, #knopf-pause { position: fixed; touch-action: none; color: rgba(232, 220, 192, 0.85); font: bold 20px monospace; box-sizing: border-box; }
+#dpad, #knopf-e, #knopf-pause, #knopf-q { position: fixed; touch-action: none; color: rgba(232, 220, 192, 0.85); font: bold 20px monospace; box-sizing: border-box; }
 #dpad { left: max(12px, env(safe-area-inset-left)); bottom: 16px; width: 132px; height: 132px; border-radius: 50%; background: rgba(29, 24, 38, 0.55); border: 2px solid rgba(107, 90, 58, 0.8); }
 #dpad .pfeil { position: absolute; width: 44px; height: 44px; line-height: 44px; text-align: center; pointer-events: none; }
 #dpad .h { left: 44px; top: 0; } #dpad .u { left: 44px; bottom: 0; } #dpad .l { left: 0; top: 44px; } #dpad .r { right: 0; top: 44px; }
@@ -19,6 +19,8 @@ body.touch #touch { display: block; }
 #knopf-e { right: max(16px, env(safe-area-inset-right)); bottom: 36px; width: 72px; height: 72px; line-height: 68px; text-align: center; border-radius: 50%; background: rgba(29, 24, 38, 0.55); border: 2px solid rgba(107, 90, 58, 0.8); font-size: 28px; }
 #knopf-e.an { background: rgba(200, 160, 224, 0.45); }
 #knopf-pause { right: max(16px, env(safe-area-inset-right)); top: 12px; width: 44px; height: 44px; line-height: 40px; text-align: center; border-radius: 8px; background: rgba(29, 24, 38, 0.55); border: 2px solid rgba(107, 90, 58, 0.8); }
+#knopf-q { right: max(16px, env(safe-area-inset-right)); top: 64px; width: 44px; height: 44px; line-height: 40px; text-align: center; border-radius: 8px; background: rgba(29, 24, 38, 0.55); border: 2px solid rgba(107, 90, 58, 0.8); font-size: 18px; }
+#knopf-q.an { background: rgba(200, 160, 224, 0.45); }
 #hinweis-quer { display: none; position: fixed; left: 72px; right: 72px; top: 12px; pointer-events: none; margin: 0; text-align: center; color: #e8dcc0; font: 14px monospace; }
 @media (orientation: portrait) { body.touch #hinweis-quer { display: block; } }
 #spiel-fehler { position: absolute; left: 10%; right: 10%; top: 40%; margin: 0; padding: 12px; background: #3a1a1a; color: #f0d8c0; font: 14px/1.4 monospace; text-align: center; }

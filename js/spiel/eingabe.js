@@ -1,5 +1,5 @@
-/* HEX-011 Eingabe: Tastatur mit Belegungstabelle (W/↑, A/←, S/↓, D/→, E, Esc, K = Kollisions-Debug)
-   + Touch (Pointer Events, Multi-Touch): Steuerkreuz, E-Knopf, Pause-Knopf. */
+/* HEX-011/028 Eingabe: Tastatur (W/↑, A/←, S/↓, D/→, E, Esc, K = Debug, Q = Aufgabenliste)
+   + Touch: Steuerkreuz, E-, Pause-, Q-Knopf (HEX-028). */
 (function () {
   'use strict';
   var BELEGUNG = {
@@ -9,6 +9,7 @@
     KeyD: 'rechts', ArrowRight: 'rechts',
     KeyE: 'aktion',
     KeyK: 'debug',      // HEX-012: Kollisions-Debug-Ansicht an/aus
+    KeyQ: 'liste',      // HEX-028: Aufgabenliste ein/aus
     Escape: 'pause'
   };
   var tasten = {};      // Tastatur: Aktion -> gehalten
@@ -33,7 +34,7 @@
 
   // ---------- Touch ----------
   var dpad = document.getElementById('dpad');
-  var knoepfe = { 'knopf-e': 'aktion', 'knopf-pause': 'pause' };
+  var knoepfe = { 'knopf-e': 'aktion', 'knopf-pause': 'pause', 'knopf-q': 'liste' };  // HEX-028: Q
   var dpadZeiger = {};   // pointerId -> {x,y} Richtung
   var knopfZeiger = {};  // pointerId -> Aktion
 
